@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "task_id": "task_123xyz456",
+    "session_id": "sess_abc123def456",
+    "agent_type": "fashion_recommender",
+    "status": "completed",
+    "parameters": {
+      "occasion": "wedding",
+      "formality": "formal",
+      "budget_range": "200-500",
+      "user_id": 1
+    },
+    "result": {
+      "recommended_products": [1, 3],
+      "reasoning": "Based on formal occasion and budget range",
+      "confidence_score": 0.87
+    },
+    "error_message": null,
+    "created_at": "2024-03-22T10:31:00Z",
+    "completed_at": "2024-03-22T10:31:05Z",
+    "processing_time": 5
+  },
+  {
+    "id": 2,
+    "task_id": "task_789abc012",
+    "session_id": "sess_ghi789jkl012",
+    "agent_type": "order_status_checker",
+    "status": "completed",
+    "parameters": {
+      "order_number": "ORD-2024-00123",
+      "user_id": 2
+    },
+    "result": {
+      "order_status": "delivered",
+      "delivery_date": "2024-03-15",
+      "tracking_number": "UPS123456789012",
+      "shipping_carrier": "UPS"
+    },
+    "error_message": null,
+    "created_at": "2024-03-21T15:20:35Z",
+    "completed_at": "2024-03-21T15:20:38Z",
+    "processing_time": 3
+  },
+  {
+    "id": 3,
+    "task_id": "task_def345ghi678",
+    "session_id": "sess_abc123def456",
+    "agent_type": "size_recommender",
+    "status": "pending",
+    "parameters": {
+      "user_height": "5'6\"",
+      "user_weight": "140 lbs",
+      "preferred_fit": "regular"
+    },
+    "result": null,
+    "error_message": null,
+    "created_at": "2024-03-22T11:40:00Z",
+    "completed_at": null,
+    "processing_time": null
+  }
+]

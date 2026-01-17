@@ -1,0 +1,115 @@
+# Curl commands to test the Agentic AI and Sales AI components
+
+# First, start the server (run this in a separate terminal):
+# python main.py
+
+# Assuming the server is running on http://127.0.0.1:8000
+
+# 1. Test Sales Agent (default routing)
+curl -X POST http://127.0.0.1:8000/sales \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "I am looking for a red dress",
+    "user_id": 1,
+    "session_id": "session123",
+    "channel": "web",
+    "history": []
+  }'
+
+# 2. Test Recommendation Agent
+curl -X POST http://127.0.0.1:8000/sales \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Can you recommend some casual dresses?",
+    "user_id": 1,
+    "session_id": "session124",
+    "channel": "web",
+    "history": []
+  }'
+
+# 3. Test Inventory Agent
+curl -X POST http://127.0.0.1:8000/sales \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Is this dress in stock?",
+    "user_id": 1,
+    "session_id": "session125",
+    "channel": "web",
+    "history": []
+  }'
+
+# 4. Test Payment Agent
+curl -X POST http://127.0.0.1:8000/sales \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "How do I pay for this order?",
+    "user_id": 1,
+    "session_id": "session126",
+    "channel": "web",
+    "history": []
+  }'
+
+# 5. Test Fulfillment Agent
+curl -X POST http://127.0.0.1:8000/sales \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "When will my order be delivered?",
+    "user_id": 1,
+    "session_id": "session127",
+    "channel": "web",
+    "history": []
+  }'
+
+# 6. Test Loyalty Agent
+curl -X POST http://127.0.0.1:8000/sales \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Do you have any discounts for loyal customers?",
+    "user_id": 1,
+    "session_id": "session128",
+    "channel": "web",
+    "history": []
+  }'
+
+# 7. Test Support Agent
+curl -X POST http://127.0.0.1:8000/sales \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "I need help with returning an item",
+    "user_id": 1,
+    "session_id": "session129",
+    "channel": "web",
+    "history": []
+  }'
+
+# 8. Test Voice Assistant (Agentic AI via voice)
+# Note: This requires uploading an audio file, example with curl:
+# curl -X POST http://127.0.0.1:8000/voice \
+#   -F "file=@path/to/audio.wav" \
+#   -F "session_id=session130" \
+#   -F "user_id=1"
+
+# 9. Test Sales Agent with different channel (mobile)
+curl -X POST http://127.0.0.1:8000/sales \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Show me wedding dresses",
+    "user_id": 2,
+    "session_id": "session131",
+    "channel": "mobile",
+    "history": []
+  }'
+
+# 10. Test Sales Agent with history
+curl -X POST http://127.0.0.1:8000/sales \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "What about size medium?",
+    "user_id": 1,
+    "session_id": "session123",
+    "channel": "web",
+    "history": [
+      {"role": "user", "content": "I am looking for a red dress"},
+      {"role": "assistant", "content": "We have several red dresses available. What size are you looking for?"}
+    ]
+  }'

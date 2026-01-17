@@ -1,0 +1,27 @@
+services:
+  freeswitch:
+    build:
+      context: .
+      dockerfile: Dockerfile.freeswitch
+    container_name: freeswitch
+    ports:
+      - "5060:5060/udp"      # SIP UDP
+      - "5060:5060/tcp"      # SIP TCP
+      - "8021:8021/tcp"      # ESL
+      - "16384-16484:16384-16484/udp"  # RTP (smaller range for testing)
+    environment:
+      - FS_EXTERNAL_IP=${EXTERNAL_IP:-127.0.0.1}
+    volumes:
+      - freeswitch_logs:/var/log/freeswitch
+      - freeswitch_config:/etc/freeswitch
+    restart: unless-stopped
+    networks:
+      - freeswitch_net
+
+volumes:
+  freeswitch_logs:
+  freeswitch_config:
+
+networks:
+  freeswitch_net:
+    driver: bridge

@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Retail Sales Chatbot</title>
+
+  <!-- ✅ Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Optional: Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    body {
+      font-family: "Inter", sans-serif;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+
+  <div class="w-full max-w-5xl">
+    <!-- Header -->
+    <div class="mb-5 flex flex-col gap-2">
+      <h1 class="text-3xl font-bold text-slate-900 text-center">
+        🛍 Retail Sales Chatbot
+      </h1>
+      <p class="text-center text-sm text-slate-600">
+        ✅ Run using a local server (example:
+        <span class="font-semibold text-slate-800">python -m http.server</span>)
+      </p>
+    </div>
+
+    <!-- Main Card -->
+    <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+      <!-- Top Actions -->
+      <div class="p-4 border-b border-slate-200 flex items-center justify-between gap-3">
+        <button
+          id="clear-chat"
+          class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 active:scale-[0.98] transition"
+        >
+          🧹 Clear Chat
+        </button>
+
+        <div
+          class="text-sm font-medium px-3 py-2 rounded-xl bg-slate-100 text-slate-700 border border-slate-200"
+          id="session-info"
+        >
+          Session: Not started
+        </div>
+      </div>
+
+      <!-- Body Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-0">
+        <!-- Chat Section -->
+        <div class="lg:col-span-2 p-4 border-b lg:border-b-0 lg:border-r border-slate-200">
+          <!-- Chat Container -->
+          <div
+            id="chat-container"
+            class="h-[420px] overflow-y-auto rounded-2xl bg-slate-50 border border-slate-200 p-4 flex flex-col gap-3"
+          ></div>
+
+          <!-- Chat Input -->
+          <form id="chat-form" class="mt-4 flex gap-2">
+            <input
+              type="text"
+              id="message-input"
+              placeholder="Type your message here..."
+              autocomplete="off"
+              class="flex-1 px-4 py-3 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              id="send-button"
+              type="submit"
+              class="px-5 py-3 rounded-2xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              Send
+            </button>
+          </form>
+
+          <!-- Voice Controls -->
+          <div class="mt-4 flex flex-col gap-2">
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="tts-toggle" checked class="w-4 h-4">
+              <label for="tts-toggle" class="text-sm font-medium text-slate-700">Enable Text-to-Speech</label>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <button
+              id="record-button"
+              type="button"
+              class="px-4 py-3 rounded-2xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 active:scale-[0.98] transition"
+            >
+              🎙 Start Recording
+            </button>
+
+            <button
+              id="stop-button"
+              type="button"
+              disabled
+              class="px-4 py-3 rounded-2xl bg-orange-500 text-white font-semibold hover:bg-orange-600 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              ⏹ Stop
+            </button>
+
+            <button
+              id="voice-send-button"
+              type="button"
+              disabled
+              class="px-4 py-3 rounded-2xl bg-sky-600 text-white font-semibold hover:bg-sky-700 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              📤 Send Voice
+            </button>
+          </div>
+
+          <!-- Audio Preview -->
+          <audio
+            id="audio-preview"
+            controls
+            class="w-full mt-3 hidden"
+          ></audio>
+
+          <!-- TTS Audio -->
+          <audio
+            id="tts-audio"
+            class="hidden"
+          ></audio>
+        </div>
+
+        <!-- Right Panel: Call Section -->
+        <div class="p-4">
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+            <h3 class="text-lg font-bold text-slate-900 mb-2">📞 Initiate Call</h3>
+            <p class="text-sm text-slate-600 mb-3">
+              Enter the customer phone number and start a call.
+            </p>
+
+            <div class="flex flex-col gap-2">
+              <input
+                type="text"
+                id="phone-input"
+                placeholder="Enter phone number (e.g., +919876543210)"
+                autocomplete="off"
+                class="px-4 py-3 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+
+              <button
+                id="call-button"
+                class="px-4 py-3 rounded-2xl bg-red-600 text-white font-semibold hover:bg-red-700 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                📞 Call Now
+              </button>
+            </div>
+
+            <div class="mt-4 p-3 rounded-xl bg-white border border-slate-200">
+              <p class="text-xs text-slate-500 leading-relaxed">
+                💡 Tip: Make sure your backend server is running and CORS is enabled for
+                <span class="font-semibold text-slate-700">http://127.0.0.1</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Quick status area -->
+          <div class="mt-4 bg-white border border-slate-200 rounded-2xl p-4">
+            <p class="text-sm font-semibold text-slate-800 mb-1">⚡ Quick Status</p>
+            <p class="text-xs text-slate-600">
+              Voice messages will be sent to <span class="font-semibold">/voice</span><br />
+              Calls will trigger <span class="font-semibold">/call</span><br />
+              Messages go to <span class="font-semibold">/sales</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="mt-4 text-center text-xs text-slate-500">
+      Built with TailwindCSS ✨
+    </p>
+  </div>
+
+  <script>
+    const API_URL = "http://127.0.0.1:8000/sales";
+    const CALL_API_URL = "http://127.0.0.1:8000/call";
+    const VOICE_API_URL = "http://127.0.0.1:8000/voice";
+    const TTS_API_URL = "http://127.0.0.1:8000/tts";
+
+    const chatContainer = document.getElementById("chat-container");
+    const messageInput = document.getElementById("message-input");
+    const sendButton = document.getElementById("send-button");
+    const clearChatBtn = document.getElementById("clear-chat");
+    const sessionInfo = document.getElementById("session-info");
+    const chatForm = document.getElementById("chat-form");
+
+    const recordButton = document.getElementById("record-button");
+    const stopButton = document.getElementById("stop-button");
+    const voiceSendButton = document.getElementById("voice-send-button");
+    const audioPreview = document.getElementById("audio-preview");
+    const ttsToggle = document.getElementById("tts-toggle");
+
+    let mediaRecorder;
+    let audioChunks = [];
+    let recordedBlob = null;
+
+    const phoneInput = document.getElementById("phone-input");
+    const callButton = document.getElementById("call-button");
+
+    let sessionId = null;
+    let history = [];
+
+    // ✅ Tailwind message bubbles
+    function addMessage(content, type, extraClass = "") {
+      const wrapper = document.createElement("div");
+      wrapper.className = `flex ${type === "user" ? "justify-end" : "justify-start"}`;
+
+      const bubble = document.createElement("div");
+
+      const base =
+        "max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words shadow-sm";
+
+      const userStyle =
+        "bg-blue-600 text-white rounded-br-md";
+
+      const assistantStyle =
+        "bg-slate-200 text-slate-900 rounded-bl-md";
+
+      const typingStyle =
+        "italic opacity-70";
+
+      bubble.className = `${base} ${type === "user" ? userStyle : assistantStyle} ${extraClass ? typingStyle : ""}`;
+      bubble.textContent = content;
+
+      wrapper.appendChild(bubble);
+      chatContainer.appendChild(wrapper);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+
+      return wrapper;
+    }
+
+    function setSessionLabel() {
+      sessionInfo.textContent = sessionId
+        ? `Session: ${sessionId}`
+        : "Session: Not started";
+    }
+
+    function setLoading(isLoading) {
+      sendButton.disabled = isLoading;
+      messageInput.disabled = isLoading;
+    }
+
+    function setCallLoading(isLoading) {
+      callButton.disabled = isLoading;
+      phoneInput.disabled = isLoading;
+    }
+
+    async function sendMessage() {
+      const message = messageInput.value.trim();
+      if (!message) return;
+
+      addMessage(message, "user");
+      history.push({ role: "user", content: message });
+
+      messageInput.value = "";
+      setLoading(true);
+
+      const typingDiv = addMessage("Assistant is typing...", "assistant", "typing");
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: message,
+            user_id: 1,
+            session_id: sessionId,
+            channel: "web",
+            history: history
+          })
+        });
+
+        let data;
+        const contentType = response.headers.get("content-type") || "";
+
+        if (contentType.includes("application/json")) {
+          data = await response.json();
+        } else {
+          const text = await response.text();
+          throw new Error("Server did not return JSON.\n\n" + text);
+        }
+
+        typingDiv.remove();
+
+        if (!response.ok) {
+          addMessage(`❌ Error: ${data.detail || "Something went wrong"}`, "assistant");
+          return;
+        }
+
+        const replyText = data.reply || "(No reply received)";
+        addMessage(replyText, "assistant");
+        history.push({ role: "assistant", content: replyText });
+
+        if (data.session_id) {
+          sessionId = data.session_id;
+          setSessionLabel();
+        }
+
+        // Play TTS for the response if enabled
+        if (ttsToggle.checked) {
+          try {
+            const ttsResponse = await fetch(TTS_API_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ text: replyText })
+            });
+            if (ttsResponse.ok) {
+              const ttsBlob = await ttsResponse.blob();
+              const ttsUrl = URL.createObjectURL(ttsBlob);
+              const ttsAudio = document.getElementById("tts-audio");
+              ttsAudio.src = ttsUrl;
+              ttsAudio.play();
+            }
+          } catch (ttsErr) {
+            console.log("TTS failed:", ttsErr);
+          }
+        }
+      } catch (err) {
+        typingDiv.remove();
+        addMessage(`❌ Error: ${err.message}`, "assistant");
+      } finally {
+        setLoading(false);
+        messageInput.focus();
+      }
+    }
+
+    async function initiateCall() {
+      const phone = phoneInput.value.trim();
+      if (!phone) return;
+
+      setCallLoading(true);
+
+      try {
+        const response = await fetch(CALL_API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone_number: phone })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          alert(`❌ Error: ${data.detail || "Something went wrong"}`);
+          return;
+        }
+
+        alert(`✅ ${data.message}`);
+        phoneInput.value = "";
+      } catch (err) {
+        alert(`❌ Error: ${err.message}`);
+      } finally {
+        setCallLoading(false);
+      }
+    }
+
+    async function startRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        audioChunks = [];
+        recordedBlob = null;
+
+        mediaRecorder = new MediaRecorder(stream);
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          recordedBlob = new Blob(audioChunks, { type: "audio/webm" });
+
+          const audioUrl = URL.createObjectURL(recordedBlob);
+          audioPreview.src = audioUrl;
+          audioPreview.classList.remove("hidden");
+
+          voiceSendButton.disabled = false;
+
+          // stop mic stream
+          stream.getTracks().forEach((track) => track.stop());
+        };
+
+        mediaRecorder.start();
+
+        recordButton.disabled = true;
+        stopButton.disabled = false;
+        voiceSendButton.disabled = true;
+
+        addMessage("🎙 Recording started...", "assistant");
+      } catch (err) {
+        alert("❌ Microphone permission denied or not available.");
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+        recordButton.disabled = false;
+        stopButton.disabled = true;
+        addMessage("✅ Recording stopped. Ready to send.", "assistant");
+      }
+    }
+
+    async function sendVoiceMessage() {
+      if (!recordedBlob) {
+        alert("Please record a voice note first.");
+        return;
+      }
+
+      addMessage("[🎤 Voice note sent]", "user");
+      setLoading(true);
+
+      const typingDiv = addMessage("Assistant is processing voice...", "assistant", "typing");
+
+      try {
+        const formData = new FormData();
+
+        const audioFile = new File([recordedBlob], "voice.webm", {
+          type: "audio/webm"
+        });
+
+        formData.append("file", audioFile);
+        formData.append("session_id", sessionId || "");
+        formData.append("user_id", "1");
+
+        const response = await fetch(VOICE_API_URL, {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await response.json();
+        typingDiv.remove();
+
+        if (!response.ok) {
+          addMessage(`❌ Error: ${data.detail || "Something went wrong"}`, "assistant");
+          return;
+        }
+
+        const replyText = data.reply || "(No reply received)";
+        addMessage(replyText, "assistant");
+        history.push({ role: "assistant", content: replyText });
+
+        if (data.session_id) {
+          sessionId = data.session_id;
+          setSessionLabel();
+        }
+
+        // Play TTS for the response if enabled
+        if (ttsToggle.checked) {
+          try {
+            const ttsResponse = await fetch(TTS_API_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ text: replyText })
+            });
+            if (ttsResponse.ok) {
+              const ttsBlob = await ttsResponse.blob();
+              const ttsUrl = URL.createObjectURL(ttsBlob);
+              const ttsAudio = document.getElementById("tts-audio");
+              ttsAudio.src = ttsUrl;
+              ttsAudio.play();
+            }
+          } catch (ttsErr) {
+            console.log("TTS failed:", ttsErr);
+          }
+        }
+
+        recordedBlob = null;
+        audioPreview.classList.add("hidden");
+        audioPreview.src = "";
+        voiceSendButton.disabled = true;
+
+      } catch (err) {
+        typingDiv.remove();
+        addMessage(`❌ Error: ${err.message}`, "assistant");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ✅ stop refresh on Enter
+    chatForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      sendMessage();
+    });
+
+    clearChatBtn.addEventListener("click", () => {
+      chatContainer.innerHTML = "";
+      history = [];
+      sessionId = null;
+      setSessionLabel();
+      addMessage("✅ Chat cleared. Start a new conversation.", "assistant");
+    });
+
+    callButton.addEventListener("click", initiateCall);
+
+    recordButton.addEventListener("click", startRecording);
+    stopButton.addEventListener("click", stopRecording);
+    voiceSendButton.addEventListener("click", sendVoiceMessage);
+
+    // Initial welcome
+    addMessage("👋 Hi! I'm your Retail Sales Assistant. How can I help you today?", "assistant");
+    setSessionLabel();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,432 @@
+[
+  {
+    "id": 1,
+    "session_id": "sess_abc123def456",
+    "user_id": 1,
+    "created_at": "2024-03-22T10:30:00Z",
+    "updated_at": "2024-03-22T11:45:00Z",
+    "status": "active",
+    "current_agent": "fashion_assistant",
+    "context": {
+      "conversation_history": [
+        "user_asked_about_dresses",
+        "assistant_recommended_evening_gowns"
+      ],
+      "user_preferences": {
+        "style": "formal",
+        "budget_range": "200-400",
+        "color_preference": [
+          "black",
+          "navy"
+        ]
+      }
+    },
+    "metadata": {
+      "device": "mobile",
+      "browser": "Chrome",
+      "ip_address": "192.168.1.100"
+    }
+  },
+  {
+    "id": 2,
+    "session_id": "sess_ghi789jkl012",
+    "user_id": 2,
+    "created_at": "2024-03-21T15:20:00Z",
+    "updated_at": "2024-03-21T16:10:00Z",
+    "status": "completed",
+    "current_agent": "order_assistant",
+    "context": {
+      "conversation_history": [
+        "user_asked_about_order_status",
+        "assistant_provided_tracking_info"
+      ],
+      "order_inquiry": {
+        "order_number": "ORD-2024-00123",
+        "last_status": "delivered"
+      }
+    },
+    "metadata": {
+      "device": "desktop",
+      "browser": "Safari",
+      "ip_address": "203.0.113.50"
+    }
+  },
+  {
+    "id": 3,
+    "session_id": "sess_1527f2a3f3ec",
+    "user_id": 1,
+    "created_at": "2026-01-13T23:18:42.461172",
+    "updated_at": "2026-01-13T23:18:42.461201",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 4,
+    "session_id": "sess_276beb94488f",
+    "user_id": 1,
+    "created_at": "2026-01-13T23:18:44.813658",
+    "updated_at": "2026-01-13T23:18:44.813665",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 5,
+    "session_id": "sess_7674c9eae062",
+    "user_id": 1,
+    "created_at": "2026-01-13T23:18:55.508113",
+    "updated_at": "2026-01-13T23:18:55.508122",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 6,
+    "session_id": "sess_d10566abdf33",
+    "user_id": 1,
+    "created_at": "2026-01-13T23:21:06.603834",
+    "updated_at": "2026-01-13T23:21:06.603843",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 7,
+    "session_id": "sess_438b078d7487",
+    "user_id": 1,
+    "created_at": "2026-01-13T23:55:43.566569",
+    "updated_at": "2026-01-13T23:55:43.566605",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 8,
+    "session_id": "sess_44ce4ba489bf",
+    "user_id": 1,
+    "created_at": "2026-01-14T06:53:27.204535",
+    "updated_at": "2026-01-14T06:53:27.204543",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 9,
+    "session_id": "sess_a93428ee27a7",
+    "user_id": 1,
+    "created_at": "2026-01-14T06:55:09.083721",
+    "updated_at": "2026-01-14T06:55:09.083753",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 10,
+    "session_id": "sess_b8bd8b2bcbde",
+    "user_id": 1,
+    "created_at": "2026-01-14T06:55:17.071659",
+    "updated_at": "2026-01-14T06:55:17.071664",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 11,
+    "session_id": "sess_0965ff5c948b",
+    "user_id": 1,
+    "created_at": "2026-01-14T06:55:24.152695",
+    "updated_at": "2026-01-14T06:55:24.152723",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 12,
+    "session_id": "sess_b708abde8b19",
+    "user_id": 1,
+    "created_at": "2026-01-14T06:56:36.266045",
+    "updated_at": "2026-01-14T06:56:36.266054",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 13,
+    "session_id": "sess_fe895644c77b",
+    "user_id": 1,
+    "created_at": "2026-01-14T06:56:50.261504",
+    "updated_at": "2026-01-14T06:56:50.261526",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 14,
+    "session_id": "sess_504bc6b2863a",
+    "user_id": 1,
+    "created_at": "2026-01-14T06:57:05.918523",
+    "updated_at": "2026-01-14T06:57:05.918530",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 15,
+    "session_id": "sess_8ec72ec11f1b",
+    "user_id": 1,
+    "created_at": "2026-01-14T06:57:21.229774",
+    "updated_at": "2026-01-14T06:57:21.229780",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 16,
+    "session_id": "sess_65dab12c717f",
+    "user_id": 1,
+    "created_at": "2026-01-14T06:58:54.917566",
+    "updated_at": "2026-01-14T06:58:54.917593",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 17,
+    "session_id": "sess_6664c38566ec",
+    "user_id": 1,
+    "created_at": "2026-01-14T06:59:56.102927",
+    "updated_at": "2026-01-14T06:59:56.102933",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 18,
+    "session_id": "sess_1bbd58daac6d",
+    "user_id": 1,
+    "created_at": "2026-01-14T07:01:04.142515",
+    "updated_at": "2026-01-14T07:01:04.142522",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 19,
+    "session_id": "sess_dd3096db1052",
+    "user_id": 1,
+    "created_at": "2026-01-14T07:02:54.776582",
+    "updated_at": "2026-01-14T07:02:54.776611",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 20,
+    "session_id": "sess_70ae880f5b07",
+    "user_id": 1,
+    "created_at": "2026-01-15T13:36:19.038495",
+    "updated_at": "2026-01-15T13:36:19.038514",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 21,
+    "session_id": "sess_a7c9bea77581",
+    "user_id": 1,
+    "created_at": "2026-01-15T13:36:36.552911",
+    "updated_at": "2026-01-15T13:36:36.552917",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 22,
+    "session_id": "sess_cd3efec5c2a8",
+    "user_id": 1,
+    "created_at": "2026-01-15T13:37:18.349250",
+    "updated_at": "2026-01-15T13:37:18.349279",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "web",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "web",
+      "device": "unknown"
+    }
+  },
+  {
+    "id": 23,
+    "session_id": "sess_ca80c9a97826",
+    "user_id": 2,
+    "created_at": "2026-01-17T15:10:33.282882",
+    "updated_at": "2026-01-17T15:10:33.282903",
+    "status": "active",
+    "current_agent": "sales_agent",
+    "context": {
+      "channel": "mobile",
+      "conversation_history": [],
+      "current_task": null
+    },
+    "metadata": {
+      "channel": "mobile",
+      "device": "unknown"
+    }
+  }
+]
