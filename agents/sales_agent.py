@@ -2,7 +2,7 @@ import os
 import requests
 from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
-from database import db
+from mongo_database import db
 from schemas import Channel
 
 load_dotenv()

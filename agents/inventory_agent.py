@@ -1,6 +1,6 @@
 from typing import Dict, Any, Optional, List
 import random
-from database import db
+from mongo_database import db
 
 class InventoryAgent:
     async def check_inventory(self, user_message: str, user_context: Dict[str, Any]) -> str:

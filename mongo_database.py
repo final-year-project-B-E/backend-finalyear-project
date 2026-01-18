@@ -27,7 +27,7 @@ class MongoDatabase:
             self.client = MongoClient(self.mongo_uri, serverSelectionTimeoutMS=5000)
             # Test connection
             self.client.admin.command('ping')
-            print("✓ Connected to MongoDB successfully")
+            print("Connected to MongoDB successfully")
         except ServerSelectionTimeoutError:
             raise ConnectionError(
                 f"Could not connect to MongoDB at {self.mongo_uri}. "
@@ -262,7 +262,7 @@ class MongoDatabase:
     
     # ==================== Chat Operations ====================
     
-    def create_chat_session(self, user_id: int, channel: str) -> Dict:
+    def create_chat_session(self, user_id: int, channel: str = "web") -> str:
         """Create a new chat session"""
         session_id = str(os.urandom(8).hex())
         session = {
@@ -273,30 +273,32 @@ class MongoDatabase:
             "updated_at": datetime.now().isoformat()
         }
         self.db.chat_sessions.insert_one(session)
-        return session
+        return session_id
     
     def get_chat_session(self, session_id: str) -> Optional[Dict]:
         """Get chat session"""
         return self.db.chat_sessions.find_one({"session_id": session_id})
     
-    def add_chat_message(self, session_id: str, role: str, content: str, 
-                        channel: Optional[str] = None) -> Dict:
+    def add_chat_message(self, session_id: str, message_type: str, content: str,
+                        agent_type: Optional[str] = None) -> Dict:
         """Add message to chat session"""
         message = {
             "session_id": session_id,
-            "role": role,
+            "message_type": message_type,
             "content": content,
-            "channel": channel,
-            "timestamp": datetime.now().isoformat()
+            "agent_type": agent_type,
+            "metadata": {},
+            "created_at": datetime.now().isoformat()
         }
         result = self.db.chat_messages.insert_one(message)
         return {**message, "_id": str(result.inserted_id)}
     
-    def get_chat_history(self, session_id: str) -> List[Dict]:
+    def get_chat_history(self, session_id: str, limit: int = 10) -> List[Dict]:
         """Get chat history for a session"""
-        return list(
-            self.db.chat_messages.find({"session_id": session_id}).sort("timestamp", 1)
+        messages = list(
+            self.db.chat_messages.find({"session_id": session_id}).sort("created_at", 1)
         )
+        return messages[-limit:] if limit > 0 else messages
     
     # ==================== Agent Tasks Operations ====================
     

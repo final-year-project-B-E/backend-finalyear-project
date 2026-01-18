@@ -1,6 +1,6 @@
 from typing import Dict, Any
 import random
-from database import db
+from mongo_database import db
 
 class PaymentAgent:
     async def process_payment(self, user_message: str, user_context: Dict[str, Any]) -> str:

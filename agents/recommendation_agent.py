@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
 import random
-from database import db
+from mongo_database import db
 
 class RecommendationAgent:
     async def get_recommendations(self, user_message: str, user_context: Dict[str, Any]) -> str:

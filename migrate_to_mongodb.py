@@ -13,14 +13,14 @@ from mongo_database import MongoDatabase
 def migrate_json_to_mongodb(data_dir: str = "data", mongo_uri: str = None):
     """Migrate data from JSON files to MongoDB"""
     
-    print("🔄 Starting migration from JSON to MongoDB...\n")
+    print("Starting migration from JSON to MongoDB...\n")
     
     try:
         # Initialize MongoDB connection
         db = MongoDatabase(mongo_uri)
-        print("✓ Connected to MongoDB\n")
+        print("Connected to MongoDB\n")
     except ConnectionError as e:
-        print(f"✗ Error: {e}")
+        print(f"Error: {e}")
         print("\nTo set up MongoDB:")
         print("1. Local: brew install mongodb-community && brew services start mongodb-community")
         print("2. Cloud: Create a cluster at https://www.mongodb.com/cloud/atlas")
@@ -45,7 +45,7 @@ def migrate_json_to_mongodb(data_dir: str = "data", mongo_uri: str = None):
         file_path = os.path.join(data_dir, json_file)
         
         if not os.path.exists(file_path):
-            print(f"⊘ Skipped {json_file} (not found)")
+            print(f"Skipped {json_file} (not found)")
             continue
         
         try:
@@ -58,7 +58,7 @@ def migrate_json_to_mongodb(data_dir: str = "data", mongo_uri: str = None):
                 data = [data]
             
             if not data:
-                print(f"⊘ Skipped {json_file} (empty)")
+                print(f"Skipped {json_file} (empty)")
                 continue
             
             # Clear existing collection
@@ -69,15 +69,15 @@ def migrate_json_to_mongodb(data_dir: str = "data", mongo_uri: str = None):
                 result = db.db[collection_name].insert_many(data)
                 count = len(result.inserted_ids)
                 total_documents += count
-                print(f"✓ {json_file}: {count} documents migrated to '{collection_name}'")
+                print(f"{json_file}: {count} documents migrated to '{collection_name}'")
             
         except json.JSONDecodeError as e:
-            print(f"✗ Error reading {json_file}: {e}")
+            print(f"Error reading {json_file}: {e}")
         except Exception as e:
-            print(f"✗ Error migrating {json_file}: {e}")
-    
-    print(f"\n✓ Migration complete! Total documents: {total_documents}")
-    print("\n📋 Next steps:")
+            print(f"Error migrating {json_file}: {e}")
+
+    print(f"\nMigration complete! Total documents: {total_documents}")
+    print("\nNext steps:")
     print("1. Update your code to use mongo_database instead of database.py")
     print("2. Change imports from 'from database import db' to 'from mongo_database import db'")
     print("3. Keep JSON files as backup or remove them when comfortable")

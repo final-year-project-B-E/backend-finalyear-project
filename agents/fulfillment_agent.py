@@ -1,7 +1,7 @@
 from typing import Dict, Any, List
 import random
 from datetime import datetime, timedelta
-from database import db
+from mongo_database import db
 
 class FulfillmentAgent:
     async def arrange_fulfillment(self, user_message: str, user_context: Dict[str, Any]) -> str:

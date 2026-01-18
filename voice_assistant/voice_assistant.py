@@ -8,7 +8,7 @@ from typing import AsyncGenerator, Optional, Dict, Any
 from dotenv import load_dotenv
 from faster_whisper import WhisperModel
 from agents.sales_agent import SalesAgent
-from database import db
+from mongo_database import db
 from schemas import Channel
 
 load_dotenv()

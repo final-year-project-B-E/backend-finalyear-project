@@ -68,3 +68,33 @@ class AgentTask(BaseModel):
     status: str
     parameters: Dict[str, Any]
     result: Optional[Dict[str, Any]] = None
+
+class UserRegistration(BaseModel):
+    email: str
+    password: str
+    first_name: str
+    last_name: str
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
+    postal_code: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    first_name: str
+    last_name: str
+    phone: Optional[str] = None
+    loyalty_score: int = 0
+    is_active: bool = True
+    created_at: str
+
+class AuthResponse(BaseModel):
+    user: UserResponse
+    token: str

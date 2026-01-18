@@ -8,7 +8,7 @@ from agents.payment_agent import PaymentAgent
 from agents.fulfillment_agent import FulfillmentAgent
 from agents.loyalty_agent import LoyaltyAgent
 from agents.support_agent import SupportAgent
-from database import db
+from mongo_database import db
 from schemas import SalesRequest, SalesResponse, Channel
 
 class Orchestrator:
@@ -152,16 +152,4 @@ class Orchestrator:
     
     def _get_user_orders(self, user_id: int) -> List[Dict]:
         """Get user's past orders"""
-        orders = []
-        for order in db.orders:
-            if order["user_id"] == user_id:
-                # Get order items
-                items = []
-                for item in db.order_items:
-                    if item["order_id"] == order["id"]:
-                        items.append(item)
-                orders.append({
-                    **order,
-                    "items": items
-                })
-        return orders
+        return db.get_user_orders(user_id)
