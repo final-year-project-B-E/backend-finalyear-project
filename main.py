@@ -37,14 +37,14 @@ async def sales_chat(req: SalesRequest):
 @app.get("/user/{user_id}/cart")
 async def get_cart(user_id: int):
     """Get user's shopping cart"""
-    from database import db
+    from mongo_database import db
     cart_items = db.get_user_cart(user_id)
     return {"user_id": user_id, "cart_items": cart_items}
 
 @app.post("/user/{user_id}/cart/add/{product_id}")
 async def add_to_cart(user_id: int, product_id: int, quantity: int = 1):
     """Add item to cart"""
-    from database import db
+    from mongo_database import db
     db.add_to_cart(user_id, product_id, quantity)
     return {"message": "Item added to cart", "user_id": user_id, "product_id": product_id}
 
@@ -52,7 +52,7 @@ async def add_to_cart(user_id: int, product_id: int, quantity: int = 1):
 async def checkout(user_id: int, shipping_address: str, 
                   billing_address: str, payment_method: str):
     """Process checkout"""
-    from database import db
+    from mongo_database import db
     cart_items = db.get_user_cart(user_id)
     
     if not cart_items:
@@ -62,8 +62,7 @@ async def checkout(user_id: int, shipping_address: str,
                            billing_address, payment_method)
     
     # Clear cart after order
-    db.carts = [item for item in db.carts if item["user_id"] != user_id]
-    db._save_json("carts.json", db.carts)
+    db.clear_cart(user_id)
     
     return {"message": "Order created", "order": order}
 
@@ -71,19 +70,15 @@ async def checkout(user_id: int, shipping_address: str,
 async def get_products(category: str = None, occasion: str = None, 
                       min_price: float = None, max_price: float = None):
     """Search products"""
-    from database import db
+    from mongo_database import db
     products = db.search_products(category, occasion, min_price, max_price)
     return {"products": products}
 
 @app.get("/user/{user_id}/orders")
 async def get_orders(user_id: int):
     """Get user's orders"""
-    from database import db
-    orders = []
-    for order in db.orders:
-        if order["user_id"] == user_id:
-            items = [item for item in db.order_items if item["order_id"] == order["id"]]
-            orders.append({**order, "items": items})
+    from mongo_database import db
+    orders = db.get_user_orders(user_id)
     return {"user_id": user_id, "orders": orders}
 
 @app.post("/call")
