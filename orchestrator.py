@@ -39,7 +39,7 @@ class Orchestrator:
 
         if session_id:
             db.add_chat_message(session_id, "user", request.message)
-        
+
         # Get user context
         user_context = {}
         if request.user_id:
@@ -55,7 +55,7 @@ class Orchestrator:
         # Get chat history
         chat_history = []
         if session_id:
-            messages = db.get_chat_history(session_id, limit=12)
+            messages = db.get_chat_history(session_id, limit=14)
             chat_history = [
                 {"role": msg["message_type"], "content": msg["content"]}
                 for msg in messages
@@ -85,27 +85,43 @@ class Orchestrator:
             action_data=action_data,
         )
 
-    def _build_user_context(self, user_id: int | None) -> Dict[str, Any]:
+    def _build_user_context(self, user_id: int | None, session_id: str | None = None) -> Dict[str, Any]:
         if not user_id:
             return {}
 
         user = db.get_user(user_id)
-        if not user:
-            return {"user_id": user_id}
-
-        return {
-            "name": f"{user['first_name']} {user['last_name']}",
-            "loyalty_score": user.get("loyalty_score", 0),
-            "past_orders": db.get_user_orders(user_id),
+        base_context = {
             "user_id": user_id,
+            "past_orders": db.get_user_orders(user_id),
         }
 
+        if user:
+            base_context.update(
+                {
+                    "name": f"{user['first_name']} {user['last_name']}",
+                    "loyalty_score": user.get("loyalty_score", 0),
+                }
+            )
+
+        cross_messages = db.get_user_recent_messages(user_id, limit=10, exclude_session_id=session_id)
+        memory_snippets = []
+        for message in cross_messages[-6:]:
+            role = message.get("message_type", "user")
+            content = (message.get("content") or "").strip()
+            if not content:
+                continue
+            memory_snippets.append(f"{role}: {content[:180]}")
+
+        base_context["cross_channel_memory"] = memory_snippets
+        base_context["style_preferences"] = self._derive_style_preferences(cross_messages)
+
+        return base_context
     def _detect_intents(self, message: str) -> List[str]:
         message_lower = message.lower()
         intents: List[str] = []
 
         intent_rules = {
-            "recommendation": ["recommend", "suggest", "find", "looking for", "style"],
+            "recommendation": ["recommend", "suggest", "find", "looking for", "style", "dress", "occasion", "formal"],
             "inventory": ["stock", "available", "in stock", "inventory", "size availability"],
             "payment": ["pay", "payment", "checkout", "buy", "purchase", "price total"],
             "fulfillment": ["delivery", "ship", "pickup", "arrive", "track", "shipping"],
