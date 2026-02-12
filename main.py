@@ -1,9 +1,16 @@
-from pathlib import Path
-
-import uvicorn
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Body, UploadFile, File, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from schemas import SalesRequest, SalesResponse
+from orchestrator import Orchestrator
+from voice_assistant.voice_assistant import VoiceAssistant
+import os
+import tempfile
+import subprocess
+
+import uvicorn
+import asyncio
+from pathlib import Path
 
 from orchestrator import Orchestrator
 from schemas import SalesRequest, SalesResponse
@@ -22,20 +29,23 @@ app.add_middleware(
 )
 
 orchestrator = Orchestrator()
+voice_assistant = VoiceAssistant()
 BASE_DIR = Path(__file__).resolve().parent
-
 
 @app.get("/")
 async def dashboard():
     """Serve local HTML dashboard for manual endpoint testing."""
     return FileResponse(BASE_DIR / "index.html")
 
-
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     """Avoid browser 404 noise when loading the dashboard."""
     return Response(status_code=204)
 
+@app.get("/")
+async def dashboard():
+    """Serve local HTML dashboard for manual endpoint testing."""
+    return FileResponse("index.html")
 
 @app.post("/sales", response_model=SalesResponse)
 async def sales_chat(req: SalesRequest):
@@ -72,9 +82,13 @@ async def checkout(user_id: int, shipping_address: str, billing_address: str, pa
     cart_items = db.get_user_cart(user_id)
     if not cart_items:
         raise HTTPException(status_code=400, detail="Cart is empty")
-
-    order = db.create_order(user_id, cart_items, shipping_address, billing_address, payment_method)
+    
+    order = db.create_order(user_id, cart_items, shipping_address, 
+                           billing_address, payment_method)
+    
+    # Clear cart after order
     db.clear_user_cart(user_id)
+    
     return {"message": "Order created", "order": order}
 
 
@@ -91,7 +105,6 @@ async def get_products(category: str = None, occasion: str = None, min_price: fl
 async def get_orders(user_id: int):
     """Get user's orders."""
     from database import db
-
     orders = db.get_user_orders(user_id)
     return {"user_id": user_id, "orders": orders}
 

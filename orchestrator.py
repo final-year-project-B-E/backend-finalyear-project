@@ -39,12 +39,32 @@ class Orchestrator:
 
         if session_id:
             db.add_chat_message(session_id, "user", request.message)
+<<<<<<< HEAD
 
         user_context = self._build_user_context(request.user_id, session_id)
 
         chat_history: List[Dict[str, str]] = []
         if session_id:
             messages = db.get_chat_history(session_id, limit=14)
+=======
+        
+        # Get user context
+        user_context = {}
+        if request.user_id:
+            user = db.get_user(request.user_id)
+            if user:
+                user_context = {
+                    "name": f"{user['first_name']} {user['last_name']}",
+                    "loyalty_score": user['loyalty_score'],
+                    "past_orders": db.get_user_orders(request.user_id),
+                    "user_id": request.user_id
+                }
+        
+        # Get chat history
+        chat_history = []
+        if session_id:
+            messages = db.get_chat_history(session_id, limit=12)
+>>>>>>> main
             chat_history = [
                 {"role": msg["message_type"], "content": msg["content"]}
                 for msg in messages
@@ -74,11 +94,16 @@ class Orchestrator:
             action_data=action_data,
         )
 
+<<<<<<< HEAD
     def _build_user_context(self, user_id: int | None, session_id: str | None) -> Dict[str, Any]:
+=======
+    def _build_user_context(self, user_id: int | None) -> Dict[str, Any]:
+>>>>>>> main
         if not user_id:
             return {}
 
         user = db.get_user(user_id)
+<<<<<<< HEAD
         base_context = {
             "user_id": user_id,
             "past_orders": db.get_user_orders(user_id),
@@ -122,12 +147,28 @@ class Orchestrator:
 
         return preferences
 
+=======
+        if not user:
+            return {"user_id": user_id}
+
+        return {
+            "name": f"{user['first_name']} {user['last_name']}",
+            "loyalty_score": user.get("loyalty_score", 0),
+            "past_orders": db.get_user_orders(user_id),
+            "user_id": user_id,
+        }
+
+>>>>>>> main
     def _detect_intents(self, message: str) -> List[str]:
         message_lower = message.lower()
         intents: List[str] = []
 
         intent_rules = {
+<<<<<<< HEAD
             "recommendation": ["recommend", "suggest", "find", "looking for", "style", "dress", "occasion", "formal"],
+=======
+            "recommendation": ["recommend", "suggest", "find", "looking for", "style"],
+>>>>>>> main
             "inventory": ["stock", "available", "in stock", "inventory", "size availability"],
             "payment": ["pay", "payment", "checkout", "buy", "purchase", "price total"],
             "fulfillment": ["delivery", "ship", "pickup", "arrive", "track", "shipping"],
