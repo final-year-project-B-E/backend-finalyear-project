@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Body, UploadFile, File
+from fastapi import FastAPI, HTTPException, Body, UploadFile, File, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from schemas import SalesRequest, SalesResponse
@@ -10,6 +10,7 @@ import subprocess
 
 import uvicorn
 import asyncio
+from pathlib import Path
 
 app = FastAPI(title="Retail Sales Agent API", 
               description="Omnichannel AI Sales Assistant for Fashion Retail")
@@ -25,6 +26,17 @@ app.add_middleware(
 
 orchestrator = Orchestrator()
 voice_assistant = VoiceAssistant()
+BASE_DIR = Path(__file__).resolve().parent
+
+@app.get("/")
+async def dashboard():
+    """Serve local HTML dashboard for manual endpoint testing."""
+    return FileResponse(BASE_DIR / "index.html")
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Avoid browser 404 noise when loading the dashboard."""
+    return Response(status_code=204)
 
 @app.get("/")
 async def dashboard():
