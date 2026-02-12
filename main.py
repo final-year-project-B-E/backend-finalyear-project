@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Body, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from schemas import SalesRequest, SalesResponse
 from orchestrator import Orchestrator
 from voice_assistant.voice_assistant import VoiceAssistant
@@ -24,6 +25,11 @@ app.add_middleware(
 
 orchestrator = Orchestrator()
 voice_assistant = VoiceAssistant()
+
+@app.get("/")
+async def dashboard():
+    """Serve local HTML dashboard for manual endpoint testing."""
+    return FileResponse("index.html")
 
 @app.post("/sales", response_model=SalesResponse)
 async def sales_chat(req: SalesRequest):
@@ -62,8 +68,7 @@ async def checkout(user_id: int, shipping_address: str,
                            billing_address, payment_method)
     
     # Clear cart after order
-    db.carts = [item for item in db.carts if item["user_id"] != user_id]
-    db._save_json("carts.json", db.carts)
+    db.clear_user_cart(user_id)
     
     return {"message": "Order created", "order": order}
 
@@ -79,11 +84,7 @@ async def get_products(category: str = None, occasion: str = None,
 async def get_orders(user_id: int):
     """Get user's orders"""
     from database import db
-    orders = []
-    for order in db.orders:
-        if order["user_id"] == user_id:
-            items = [item for item in db.order_items if item["order_id"] == order["id"]]
-            orders.append({**order, "items": items})
+    orders = db.get_user_orders(user_id)
     return {"user_id": user_id, "orders": orders}
 
 @app.post("/call")

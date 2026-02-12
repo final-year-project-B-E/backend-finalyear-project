@@ -149,7 +149,8 @@ class VoiceAssistant:
                 user_context = {
                     "name": f"{user['first_name']} {user['last_name']}",
                     "loyalty_score": user["loyalty_score"],
-                    "past_orders": self._get_user_orders(user_id),
+                    "past_orders": db.get_user_orders(user_id),
+                    "user_id": user_id,
                 }
 
         # ✅ history
@@ -203,16 +204,6 @@ class VoiceAssistant:
             print(f"Error transcribing audio: {e}")
             return "There was an error processing your voice message."
 
-    def _get_user_orders(self, user_id: int) -> list:
-        orders = []
-        for order in db.orders:
-            if order["user_id"] == user_id:
-                items = []
-                for item in db.order_items:
-                    if item["order_id"] == order["id"]:
-                        items.append(item)
-                orders.append({**order, "items": items})
-        return orders
 
     def text_to_speech(self, text: str) -> str:
         """Convert text to speech using OpenAI TTS"""
