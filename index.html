@@ -1,252 +1,811 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Retail API Test Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    pre { white-space: pre-wrap; word-break: break-word; }
-  </style>
-</head>
-<body class="bg-slate-100 min-h-screen p-4">
-  <div class="max-w-7xl mx-auto space-y-4">
-    <header class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-      <h1 class="text-2xl font-bold text-slate-900">Retail Project Functional Test Dashboard</h1>
-      <p class="text-sm text-slate-600 mt-1">Use this page to exercise all major endpoints: sales/chat, products, cart, checkout, orders, call, and voice upload.</p>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-        <label class="text-sm">
-          <span class="font-semibold text-slate-700">API Base URL</span>
-          <input id="base-url" value="http://127.0.0.1:8000" class="mt-1 w-full border border-slate-300 rounded-xl px-3 py-2" />
-        </label>
-        <label class="text-sm">
-          <span class="font-semibold text-slate-700">User ID</span>
-          <input id="user-id" type="number" value="1" class="mt-1 w-full border border-slate-300 rounded-xl px-3 py-2" />
-        </label>
-        <label class="text-sm">
-          <span class="font-semibold text-slate-700">Session ID (sales/voice)</span>
-          <input id="session-id" placeholder="Auto-generated from /sales" class="mt-1 w-full border border-slate-300 rounded-xl px-3 py-2" />
-        </label>
-      </div>
-    </header>
-
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
-        <h2 class="text-lg font-bold">1) Sales Chat (/sales)</h2>
-        <textarea id="sales-message" rows="3" class="w-full border border-slate-300 rounded-xl px-3 py-2" placeholder="Type a customer message..."></textarea>
-        <div class="grid grid-cols-2 gap-2">
-          <select id="sales-channel" class="border border-slate-300 rounded-xl px-3 py-2">
-            <option value="web">web</option>
-            <option value="mobile">mobile</option>
-            <option value="whatsapp">whatsapp</option>
-            <option value="telegram">telegram</option>
-            <option value="kiosk">kiosk</option>
-            <option value="voice">voice</option>
-          </select>
-          <button id="send-sales" class="bg-blue-600 text-white rounded-xl px-4 py-2 font-semibold">Send Message</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Retail API Test Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      * {
+        transition:
+          background-color 0.2s ease,
+          border-color 0.2s ease;
+      }
+      body {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      }
+      .card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+      }
+      .card:hover {
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border-color: #cbd5e1;
+      }
+      .input-field {
+        transition: all 0.2s ease;
+      }
+      .input-field:focus {
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        border-color: #3b82f6;
+        outline: none;
+      }
+      .input-field::placeholder {
+        color: #cbd5e1;
+      }
+      .btn-primary {
+        transition: all 0.2s ease;
+      }
+      .btn-primary:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+      }
+      .btn-primary:active:not(:disabled) {
+        transform: translateY(0);
+      }
+      .section-title {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      #console {
+        scrollbar-width: thin;
+        scrollbar-color: #475569 #1e293b;
+      }
+      #console::-webkit-scrollbar {
+        width: 8px;
+      }
+      #console::-webkit-scrollbar-track {
+        background: #1e293b;
+      }
+      #console::-webkit-scrollbar-thumb {
+        background: #475569;
+        border-radius: 4px;
+      }
+      #console::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+      }
+      label[for="voice-file"] {
+        cursor: pointer;
+      }
+      #chat-modal.hidden {
+        display: none !important;
+        visibility: hidden !important;
+      }
+      #chat-modal:not(.hidden) {
+        display: flex !important;
+        visibility: visible !important;
+      }
+      #chat-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 9999;
+        background-color: rgba(0, 0, 0, 0.5);
+        align-items: center;
+        justify-content: center;
+      }
+      #modal-chat-log::-webkit-scrollbar,
+      #modal-console::-webkit-scrollbar {
+        width: 8px;
+      }
+      #modal-chat-log::-webkit-scrollbar-track,
+      #modal-console::-webkit-scrollbar-track {
+        background: #f1f5f9;
+      }
+      #modal-chat-log::-webkit-scrollbar-thumb,
+      #modal-console::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      #modal-chat-log::-webkit-scrollbar-thumb:hover,
+      #modal-console::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+      #modal-console::-webkit-scrollbar-track {
+        background: #1e293b;
+      }
+      #modal-console::-webkit-scrollbar-thumb {
+        background: #475569;
+      }
+      #modal-console::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen p-6 md:p-8">
+    <div class="max-w-7xl mx-auto space-y-6">
+      <header class="card rounded-3xl p-6 md:p-8 shadow-lg border-0">
+        <div class="flex items-start justify-between mb-6">
+          <div>
+            <h1 class="text-4xl font-bold text-slate-900 mb-2">
+              Retail API Dashboard
+            </h1>
+            <p class="text-lg text-slate-500">
+              Test all endpoints: sales, products, cart, checkout, orders, calls
+              & voice
+            </p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button
+              id="open-chat-modal"
+              class="btn-primary bg-gradient-to-r from-violet-600 to-violet-700 text-white rounded-xl px-6 py-3 font-semibold shadow-lg hover:shadow-xl"
+              title="Open expanded chat interface"
+            >
+              💬 Chat Modal
+            </button>
+            <div
+              class="hidden md:block w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl"
+            ></div>
+          </div>
         </div>
-        <div id="chat-log" class="h-56 overflow-y-auto bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm"></div>
-      </div>
-
-      <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
-        <h2 class="text-lg font-bold">2) Products Search (/products)</h2>
-        <div class="grid grid-cols-2 gap-2">
-          <input id="product-category" placeholder="Category" class="border border-slate-300 rounded-xl px-3 py-2" />
-          <input id="product-occasion" placeholder="Occasion" class="border border-slate-300 rounded-xl px-3 py-2" />
-          <input id="min-price" type="number" step="0.01" placeholder="Min price" class="border border-slate-300 rounded-xl px-3 py-2" />
-          <input id="max-price" type="number" step="0.01" placeholder="Max price" class="border border-slate-300 rounded-xl px-3 py-2" />
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="flex flex-col">
+            <label
+              class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2"
+              >API Base URL</label
+            >
+            <input
+              id="base-url"
+              value="http://127.0.0.1:8000"
+              class="input-field w-full border border-slate-200 rounded-xl px-4 py-3 bg-white text-slate-900 placeholder-slate-400 font-mono text-sm"
+            />
+          </div>
+          <div class="flex flex-col">
+            <label
+              class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2"
+              >User ID</label
+            >
+            <input
+              id="user-id"
+              type="number"
+              value="1"
+              class="input-field w-full border border-slate-200 rounded-xl px-4 py-3 bg-white text-slate-900"
+            />
+          </div>
+          <div class="flex flex-col">
+            <label
+              class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2"
+              >Session ID</label
+            >
+            <input
+              id="session-id"
+              placeholder="Auto-generated"
+              class="input-field w-full border border-slate-200 rounded-xl px-4 py-3 bg-white text-slate-900 placeholder-slate-400 font-mono text-sm"
+            />
+          </div>
         </div>
-        <button id="load-products" class="bg-emerald-600 text-white rounded-xl px-4 py-2 font-semibold">Load Products</button>
-      </div>
+      </header>
 
-      <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
-        <h2 class="text-lg font-bold">3) Cart Operations</h2>
-        <div class="grid grid-cols-3 gap-2">
-          <input id="cart-product-id" type="number" placeholder="Product ID" class="border border-slate-300 rounded-xl px-3 py-2" />
-          <input id="cart-qty" type="number" value="1" placeholder="Quantity" class="border border-slate-300 rounded-xl px-3 py-2" />
-          <button id="add-cart" class="bg-indigo-600 text-white rounded-xl px-4 py-2 font-semibold">Add to Cart</button>
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card rounded-3xl p-6 shadow-md border-0">
+          <div class="flex items-center mb-5">
+            <div
+              class="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm"
+            >
+              1
+            </div>
+            <h2 class="text-xl font-bold text-slate-900 ml-3">Sales Chat</h2>
+          </div>
+          <textarea
+            id="sales-message"
+            rows="3"
+            class="input-field w-full border border-slate-200 rounded-2xl px-4 py-3 bg-slate-50 text-slate-900 placeholder-slate-400 resize-none mb-4"
+            placeholder="What can I help you find today..."
+          ></textarea>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <select
+              id="sales-channel"
+              class="input-field border border-slate-200 rounded-xl px-4 py-3 bg-white text-slate-900 font-medium"
+            >
+              <option value="web">Web</option>
+              <option value="mobile">Mobile</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="telegram">Telegram</option>
+              <option value="kiosk">Kiosk</option>
+              <option value="voice">Voice</option>
+            </select>
+            <button
+              id="send-sales"
+              class="btn-primary bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl px-6 py-3 font-semibold shadow-lg"
+            >
+              Send Message
+            </button>
+          </div>
+          <div
+            id="chat-log"
+            class="h-64 overflow-y-auto bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm space-y-2"
+          ></div>
         </div>
-        <button id="get-cart" class="bg-slate-700 text-white rounded-xl px-4 py-2 font-semibold">Get User Cart</button>
-      </div>
 
-      <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
-        <h2 class="text-lg font-bold">4) Checkout + Orders</h2>
-        <input id="shipping-address" placeholder="Shipping address" class="w-full border border-slate-300 rounded-xl px-3 py-2" />
-        <input id="billing-address" placeholder="Billing address" class="w-full border border-slate-300 rounded-xl px-3 py-2" />
-        <input id="payment-method" value="credit_card" placeholder="Payment method" class="w-full border border-slate-300 rounded-xl px-3 py-2" />
-        <div class="grid grid-cols-2 gap-2">
-          <button id="checkout" class="bg-purple-600 text-white rounded-xl px-4 py-2 font-semibold">Checkout</button>
-          <button id="get-orders" class="bg-cyan-600 text-white rounded-xl px-4 py-2 font-semibold">Get User Orders</button>
+        <div class="card rounded-3xl p-6 shadow-md border-0">
+          <div class="flex items-center mb-5">
+            <div
+              class="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm"
+            >
+              2
+            </div>
+            <h2 class="text-xl font-bold text-slate-900 ml-3">
+              Products Search
+            </h2>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <input
+              id="product-category"
+              placeholder="Category"
+              class="input-field border border-slate-200 rounded-xl px-4 py-3 bg-white text-slate-900 placeholder-slate-400"
+            />
+            <input
+              id="product-occasion"
+              placeholder="Occasion"
+              class="input-field border border-slate-200 rounded-xl px-4 py-3 bg-white text-slate-900 placeholder-slate-400"
+            />
+            <input
+              id="min-price"
+              type="number"
+              step="0.01"
+              placeholder="Min price"
+              class="input-field border border-slate-200 rounded-xl px-4 py-3 bg-white text-slate-900 placeholder-slate-400"
+            />
+            <input
+              id="max-price"
+              type="number"
+              step="0.01"
+              placeholder="Max price"
+              class="input-field border border-slate-200 rounded-xl px-4 py-3 bg-white text-slate-900 placeholder-slate-400"
+            />
+          </div>
+          <button
+            id="load-products"
+            class="btn-primary w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl px-6 py-3 font-semibold shadow-lg"
+          >
+            Load Products
+          </button>
         </div>
-        <div id="chat-log" class="h-56 overflow-y-auto bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm"></div>
+
+        <div class="card rounded-3xl p-6 shadow-md border-0">
+          <div class="flex items-center mb-5">
+            <div
+              class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm"
+            >
+              3
+            </div>
+            <h2 class="text-xl font-bold text-slate-900 ml-3">
+              Cart Operations
+            </h2>
+          </div>
+          <div class="grid grid-cols-3 gap-3 mb-4">
+            <input
+              id="cart-product-id"
+              type="number"
+              placeholder="Product ID"
+              class="input-field border border-slate-200 rounded-xl px-4 py-3 bg-white text-slate-900 placeholder-slate-400"
+            />
+            <input
+              id="cart-qty"
+              type="number"
+              value="1"
+              placeholder="Quantity"
+              class="input-field border border-slate-200 rounded-xl px-4 py-3 bg-white text-slate-900"
+            />
+            <button
+              id="add-cart"
+              class="btn-primary bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl px-4 py-3 font-semibold shadow-lg"
+            >
+              Add
+            </button>
+          </div>
+          <button
+            id="get-cart"
+            class="btn-primary w-full bg-slate-700 hover:bg-slate-800 text-white rounded-xl px-6 py-3 font-semibold shadow-lg"
+          >
+            Get User Cart
+          </button>
+        </div>
+
+        <div class="card rounded-3xl p-6 shadow-md border-0">
+          <div class="flex items-center mb-5">
+            <div
+              class="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm"
+            >
+              4
+            </div>
+            <h2 class="text-xl font-bold text-slate-900 ml-3">
+              Checkout & Orders
+            </h2>
+          </div>
+          <input
+            id="shipping-address"
+            placeholder="Shipping address"
+            class="input-field w-full border border-slate-200 rounded-xl px-4 py-3 bg-white text-slate-900 placeholder-slate-400 mb-3"
+          />
+          <input
+            id="billing-address"
+            placeholder="Billing address"
+            class="input-field w-full border border-slate-200 rounded-xl px-4 py-3 bg-white text-slate-900 placeholder-slate-400 mb-3"
+          />
+          <input
+            id="payment-method"
+            value="credit_card"
+            placeholder="Payment method"
+            class="input-field w-full border border-slate-200 rounded-xl px-4 py-3 bg-white text-slate-900 placeholder-slate-400 mb-4"
+          />
+          <div class="grid grid-cols-2 gap-3">
+            <button
+              id="checkout"
+              class="btn-primary bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl px-4 py-3 font-semibold shadow-lg"
+            >
+              Checkout
+            </button>
+            <button
+              id="get-orders"
+              class="btn-primary bg-gradient-to-r from-cyan-600 to-cyan-700 text-white rounded-xl px-4 py-3 font-semibold shadow-lg"
+            >
+              Get Orders
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card rounded-3xl shadow-md border-0">
+        <div
+          class="px-6 md:px-8 py-6 md:py-8 border-b border-slate-200 flex items-center justify-between"
+        >
+          <div>
+            <h2 class="text-2xl font-bold text-slate-900">
+              API Response Console
+            </h2>
+            <p class="text-sm text-slate-500 mt-1">
+              Real-time request and response logs
+            </p>
+          </div>
+          <button
+            id="clear-console"
+            class="btn-primary bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg px-4 py-2 text-sm font-medium"
+          >
+            Clear
+          </button>
+        </div>
+        <pre
+          id="console"
+          class="min-h-[300px] bg-slate-950 text-emerald-400 p-6 rounded-b-3xl text-xs font-mono overflow-auto shadow-inner border-t border-slate-800"
+        ></pre>
+      </section>
+    </div>
+
+    <!-- Chat Modal -->
+    <div
+      id="chat-modal"
+      class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4"
+    >
+      <div
+        class="w-full h-full max-h-[95vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+      >
+        <!-- Modal Header -->
+        <div
+          class="bg-gradient-to-r from-violet-600 to-violet-700 text-white px-6 md:px-8 py-4 flex items-center justify-between"
+        >
+          <h2 class="text-2xl font-bold">💬 Chat Interface</h2>
+          <button
+            id="close-chat-modal"
+            class="btn-primary bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-lg px-3 py-2 text-lg font-semibold"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Modal Content: Split Layout -->
+        <div
+          class="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-0"
+        >
+          <!-- Left: Chat Section -->
+          <div class="flex flex-col border-r border-slate-200">
+            <div
+              class="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-6 space-y-2"
+              id="modal-chat-log"
+            ></div>
+            <div
+              class="border-t border-slate-200 bg-white p-4 md:p-6 space-y-3"
+            >
+              <div class="grid grid-cols-2 gap-2">
+                <select
+                  id="modal-sales-channel"
+                  class="input-field border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-900 font-medium text-sm"
+                >
+                  <option value="web">Web</option>
+                  <option value="mobile">Mobile</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="telegram">Telegram</option>
+                  <option value="kiosk">Kiosk</option>
+                  <option value="voice">Voice</option>
+                </select>
+                <div class="flex items-center text-xs text-slate-500">
+                  <span id="modal-session-display">No session</span>
+                </div>
+              </div>
+              <textarea
+                id="modal-sales-message"
+                rows="3"
+                class="input-field w-full border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-900 placeholder-slate-400 resize-none text-sm"
+                placeholder="Type your message..."
+              ></textarea>
+              <button
+                id="modal-send-sales"
+                class="btn-primary w-full bg-gradient-to-r from-violet-600 to-violet-700 text-white rounded-lg px-4 py-2 font-semibold shadow-lg text-sm"
+              >
+                Send Message
+              </button>
+            </div>
+          </div>
+
+          <!-- Right: Console Section -->
+          <div
+            class="flex flex-col border-t md:border-t-0 md:border-l border-slate-200 hidden md:flex"
+          >
+            <div
+              class="px-4 md:px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between"
+            >
+              <h3 class="font-semibold text-slate-900">API Console</h3>
+              <button
+                id="modal-clear-console"
+                class="btn-primary bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg px-3 py-1 text-xs font-medium"
+              >
+                Clear
+              </button>
+            </div>
+            <pre
+              id="modal-console"
+              class="flex-1 bg-slate-950 text-emerald-400 p-4 md:p-6 text-xs font-mono overflow-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-950"
+            ></pre>
+          </div>
+        </div>
       </div>
+    </div>
 
-      <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
-        <h2 class="text-lg font-bold">5) Calling Agent (/call)</h2>
-        <input id="phone-number" placeholder="+919876543210" class="w-full border border-slate-300 rounded-xl px-3 py-2" />
-        <button id="start-call" class="bg-red-600 text-white rounded-xl px-4 py-2 font-semibold">Initiate Call</button>
-      </div>
+    <script>
+      console.log("Script loaded successfully");
+      const chatHistory = [];
 
-      <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
-        <h2 class="text-lg font-bold">6) Voice Upload (/voice)</h2>
-        <input id="voice-file" type="file" accept="audio/*" class="w-full border border-slate-300 rounded-xl px-3 py-2" />
-        <button id="send-voice" class="bg-orange-600 text-white rounded-xl px-4 py-2 font-semibold">Send Voice File</button>
-      </div>
-    </section>
+      const el = (id) => document.getElementById(id);
 
-    <section class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-      <div class="flex items-center justify-between mb-2">
-        <h2 class="text-lg font-bold">API Response Console</h2>
-        <button id="clear-console" class="text-sm bg-slate-200 rounded-lg px-3 py-1">Clear</button>
-      </div>
-      <pre id="console" class="min-h-[220px] bg-black text-green-300 p-3 rounded-xl text-xs overflow-auto"></pre>
-    </section>
-  </div>
+      function baseUrl() {
+        return el("base-url").value.trim().replace(/\/$/, "");
+      }
 
-  <script>
-    const chatHistory = [];
+      function currentUserId() {
+        return Number(el("user-id").value || 1);
+      }
 
-    const el = (id) => document.getElementById(id);
+      function appendConsole(title, payload) {
+        const now = new Date().toLocaleTimeString();
+        const line = `[${now}] ${title}\n${typeof payload === "string" ? payload : JSON.stringify(payload, null, 2)}\n\n`;
+        el("console").textContent += line;
+        el("console").scrollTop = el("console").scrollHeight;
 
-    function baseUrl() {
-      return el("base-url").value.trim().replace(/\/$/, "");
-    }
+        // Also append to modal console if it exists
+        const modalConsole = el("modal-console");
+        if (modalConsole) {
+          modalConsole.textContent += line;
+          modalConsole.scrollTop = modalConsole.scrollHeight;
+        }
+      }
 
-    function currentUserId() {
-      return Number(el("user-id").value || 1);
-    }
+      async function request(path, options = {}) {
+        const url = `${baseUrl()}${path}`;
+        appendConsole(
+          `→ ${options.method || "GET"} ${url}`,
+          options.body || "",
+        );
+        const response = await fetch(url, options);
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = text;
+        }
+        appendConsole(`← ${response.status} ${url}`, data);
+        if (!response.ok)
+          throw new Error(
+            typeof data === "string" ? data : JSON.stringify(data),
+          );
+        return data;
+      }
 
-    function appendConsole(title, payload) {
-      const now = new Date().toLocaleTimeString();
-      const line = `[${now}] ${title}\n${typeof payload === "string" ? payload : JSON.stringify(payload, null, 2)}\n\n`;
-      el("console").textContent += line;
-      el("console").scrollTop = el("console").scrollHeight;
-    }
+      function addChat(role, text) {
+        const row = document.createElement("div");
+        row.className = `flex ${role === "user" ? "justify-end" : "justify-start"}`;
+        const msgClass =
+          role === "user"
+            ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl rounded-tr-none shadow-md"
+            : "bg-slate-100 text-slate-900 rounded-2xl rounded-tl-none border border-slate-200";
+        row.innerHTML = `<span class="inline-block px-4 py-2 max-w-xs ${msgClass} text-sm leading-relaxed">${text}</span>`;
+        el("chat-log").appendChild(row);
+        el("chat-log").scrollTop = el("chat-log").scrollHeight;
 
-    async function request(path, options = {}) {
-      const url = `${baseUrl()}${path}`;
-      appendConsole(`→ ${options.method || "GET"} ${url}`, options.body || "");
-      const response = await fetch(url, options);
-      const text = await response.text();
-      let data;
-      try { data = JSON.parse(text); } catch { data = text; }
-      appendConsole(`← ${response.status} ${url}`, data);
-      if (!response.ok) throw new Error(typeof data === "string" ? data : JSON.stringify(data));
-      return data;
-    }
+        // Also add to modal chat if it exists
+        const modalChatLog = el("modal-chat-log");
+        if (modalChatLog) {
+          const modalRow = row.cloneNode(true);
+          modalChatLog.appendChild(modalRow);
+          modalChatLog.scrollTop = modalChatLog.scrollHeight;
+        }
+      }
 
-    function addChat(role, text) {
-      const row = document.createElement("div");
-      row.className = `mb-2 ${role === "user" ? "text-right" : "text-left"}`;
-      row.innerHTML = `<span class="inline-block px-3 py-2 rounded-xl ${role === "user" ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-900"}">${text}</span>`;
-      el("chat-log").appendChild(row);
-      el("chat-log").scrollTop = el("chat-log").scrollHeight;
-    }
+      document.addEventListener("DOMContentLoaded", () => {
+        const sendSalesBtn = el("send-sales");
+        if (sendSalesBtn) {
+          sendSalesBtn.addEventListener("click", async () => {
+            const message = el("sales-message").value.trim();
+            if (!message) return;
+            addChat("user", message);
+            chatHistory.push({ role: "user", content: message });
 
-    el("send-sales").addEventListener("click", async () => {
-      const message = el("sales-message").value.trim();
-      if (!message) return;
-      addChat("user", message);
-      chatHistory.push({ role: "user", content: message });
+            try {
+              const data = await request("/sales", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  message,
+                  user_id: currentUserId(),
+                  session_id: el("session-id").value.trim() || null,
+                  channel: el("sales-channel").value,
+                  history: chatHistory,
+                }),
+              });
 
-      try {
-        const data = await request("/sales", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message,
-            user_id: currentUserId(),
-            session_id: el("session-id").value.trim() || null,
-            channel: el("sales-channel").value,
-            history: chatHistory,
-          }),
+              if (data.session_id) el("session-id").value = data.session_id;
+              const reply = data.reply || "(no reply)";
+              chatHistory.push({ role: "assistant", content: reply });
+              addChat("assistant", reply);
+              el("sales-message").value = "";
+            } catch (error) {
+              addChat("assistant", `Error: ${error.message}`);
+            }
+          });
+        }
+
+        const loadProductsBtn = el("load-products");
+        if (loadProductsBtn) {
+          loadProductsBtn.addEventListener("click", async () => {
+            const params = new URLSearchParams();
+            const category = el("product-category").value.trim();
+            const occasion = el("product-occasion").value.trim();
+            const minPrice = el("min-price").value.trim();
+            const maxPrice = el("max-price").value.trim();
+            if (category) params.set("category", category);
+            if (occasion) params.set("occasion", occasion);
+            if (minPrice) params.set("min_price", minPrice);
+            if (maxPrice) params.set("max_price", maxPrice);
+            await request(
+              `/products${params.toString() ? `?${params.toString()}` : ""}`,
+            );
+          });
+        }
+
+        const addCartBtn = el("add-cart");
+        if (addCartBtn) {
+          addCartBtn.addEventListener("click", async () => {
+            const productId = Number(el("cart-product-id").value);
+            const quantity = Number(el("cart-qty").value || 1);
+            if (!productId) return alert("Enter product ID");
+            await request(
+              `/user/${currentUserId()}/cart/add/${productId}?quantity=${quantity}`,
+              { method: "POST" },
+            );
+          });
+        }
+
+        const getCartBtn = el("get-cart");
+        if (getCartBtn) {
+          getCartBtn.addEventListener("click", async () => {
+            await request(`/user/${currentUserId()}/cart`);
+          });
+        }
+
+        const checkoutBtn = el("checkout");
+        if (checkoutBtn) {
+          checkoutBtn.addEventListener("click", async () => {
+            const shipping = encodeURIComponent(
+              el("shipping-address").value.trim(),
+            );
+            const billing = encodeURIComponent(
+              el("billing-address").value.trim(),
+            );
+            const payment = encodeURIComponent(
+              el("payment-method").value.trim() || "credit_card",
+            );
+            if (!shipping || !billing)
+              return alert("Provide shipping and billing addresses");
+            await request(
+              `/user/${currentUserId()}/checkout?shipping_address=${shipping}&billing_address=${billing}&payment_method=${payment}`,
+              { method: "POST" },
+            );
+          });
+        }
+
+        const getOrdersBtn = el("get-orders");
+        if (getOrdersBtn) {
+          getOrdersBtn.addEventListener("click", async () => {
+            await request(`/user/${currentUserId()}/orders`);
+          });
+        }
+
+        const startCallBtn = el("start-call");
+        if (startCallBtn) {
+          startCallBtn.addEventListener("click", async () => {
+            const phone = el("phone-number").value.trim();
+            if (!phone) return alert("Provide phone number");
+            await request(`/call`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ phone_number: phone }),
+            });
+          });
+        }
+
+        const sendVoiceBtn = el("send-voice");
+        if (sendVoiceBtn) {
+          sendVoiceBtn.addEventListener("click", async () => {
+            const file = el("voice-file").files[0];
+            if (!file) return alert("Select an audio file");
+
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("session_id", el("session-id").value.trim());
+            formData.append("user_id", String(currentUserId()));
+
+            const url = `${baseUrl()}/voice`;
+            appendConsole(`→ POST ${url}`, "[multipart/form-data]");
+            const response = await fetch(url, {
+              method: "POST",
+              body: formData,
+            });
+            const text = await response.text();
+            let data;
+            try {
+              data = JSON.parse(text);
+            } catch {
+              data = text;
+            }
+            appendConsole(`← ${response.status} ${url}`, data);
+
+            if (!response.ok) {
+              alert(
+                `Voice request failed: ${typeof data === "string" ? data : JSON.stringify(data)}`,
+              );
+              return;
+            }
+
+            if (data.session_id) el("session-id").value = data.session_id;
+            if (data.reply) addChat("assistant", data.reply);
+          });
+        }
+
+        const voiceFileInput = el("voice-file");
+        if (voiceFileInput) {
+          voiceFileInput.addEventListener("change", (e) => {
+            const label = e.target.closest("label");
+            if (e.target.files[0]) {
+              const div = label.querySelector("div");
+              div.innerHTML = `<div class="text-2xl text-orange-500 mb-2">✓</div><p class="text-sm font-medium text-slate-900">${e.target.files[0].name}</p><p class="text-xs text-slate-500">Ready to send</p>`;
+            }
+          });
+        }
+
+        const clearConsoleBtn = el("clear-console");
+        if (clearConsoleBtn) {
+          clearConsoleBtn.addEventListener("click", () => {
+            el("console").textContent = "";
+          });
+        }
+
+        // Modal functionality
+        const openModalBtn = el("open-chat-modal");
+        const closeModalBtn = el("close-chat-modal");
+        const chatModal = el("chat-modal");
+
+        console.log("Modal elements:", {
+          openModalBtn,
+          closeModalBtn,
+          chatModal,
         });
 
-        if (data.session_id) el("session-id").value = data.session_id;
-        const reply = data.reply || "(no reply)";
-        chatHistory.push({ role: "assistant", content: reply });
-        addChat("assistant", reply);
-        el("sales-message").value = "";
-      } catch (error) {
-        addChat("assistant", `Error: ${error.message}`);
-      }
-    });
+        if (openModalBtn && chatModal) {
+          openModalBtn.addEventListener("click", () => {
+            console.log("Opening modal...");
+            chatModal.classList.remove("hidden");
+            updateModalSessionDisplay();
+          });
+        }
 
-    el("load-products").addEventListener("click", async () => {
-      const params = new URLSearchParams();
-      const category = el("product-category").value.trim();
-      const occasion = el("product-occasion").value.trim();
-      const minPrice = el("min-price").value.trim();
-      const maxPrice = el("max-price").value.trim();
-      if (category) params.set("category", category);
-      if (occasion) params.set("occasion", occasion);
-      if (minPrice) params.set("min_price", minPrice);
-      if (maxPrice) params.set("max_price", maxPrice);
-      await request(`/products${params.toString() ? `?${params.toString()}` : ""}`);
-    });
+        if (closeModalBtn && chatModal) {
+          closeModalBtn.addEventListener("click", () => {
+            console.log("Closing modal...");
+            chatModal.classList.add("hidden");
+          });
+        }
 
-    el("add-cart").addEventListener("click", async () => {
-      const productId = Number(el("cart-product-id").value);
-      const quantity = Number(el("cart-qty").value || 1);
-      if (!productId) return alert("Enter product ID");
-      await request(`/user/${currentUserId()}/cart/add/${productId}?quantity=${quantity}`, { method: "POST" });
-    });
+        if (chatModal) {
+          chatModal.addEventListener("click", (e) => {
+            if (e.target === chatModal) {
+              chatModal.classList.add("hidden");
+            }
+          });
+        }
 
-    el("get-cart").addEventListener("click", async () => {
-      await request(`/user/${currentUserId()}/cart`);
-    });
+        function updateModalSessionDisplay() {
+          const sessionIdInput = el("session-id");
+          const displaySpan = el("modal-session-display");
+          if (sessionIdInput && displaySpan) {
+            const sessionId = sessionIdInput.value.trim();
+            const display = sessionId ? `Session: ${sessionId}` : "No session";
+            displaySpan.textContent = display;
+          }
+        }
 
-    el("checkout").addEventListener("click", async () => {
-      const shipping = encodeURIComponent(el("shipping-address").value.trim());
-      const billing = encodeURIComponent(el("billing-address").value.trim());
-      const payment = encodeURIComponent(el("payment-method").value.trim() || "credit_card");
-      if (!shipping || !billing) return alert("Provide shipping and billing addresses");
-      await request(`/user/${currentUserId()}/checkout?shipping_address=${shipping}&billing_address=${billing}&payment_method=${payment}`, { method: "POST" });
-    });
+        const modalSendSalesBtn = el("modal-send-sales");
+        if (modalSendSalesBtn) {
+          modalSendSalesBtn.addEventListener("click", async () => {
+            const message = el("modal-sales-message").value.trim();
+            if (!message) return;
+            addChat("user", message);
+            chatHistory.push({ role: "user", content: message });
 
-    el("get-orders").addEventListener("click", async () => {
-      await request(`/user/${currentUserId()}/orders`);
-    });
+            try {
+              const data = await request("/sales", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  message,
+                  user_id: currentUserId(),
+                  session_id: el("session-id").value.trim() || null,
+                  channel: el("modal-sales-channel").value,
+                  history: chatHistory,
+                }),
+              });
 
-    el("start-call").addEventListener("click", async () => {
-      const phone = el("phone-number").value.trim();
-      if (!phone) return alert("Provide phone number");
-      await request(`/call`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone_number: phone }),
+              if (data.session_id) {
+                el("session-id").value = data.session_id;
+                updateModalSessionDisplay();
+              }
+              const reply = data.reply || "(no reply)";
+              chatHistory.push({ role: "assistant", content: reply });
+              addChat("assistant", reply);
+              el("modal-sales-message").value = "";
+            } catch (error) {
+              addChat("assistant", `Error: ${error.message}`);
+            }
+          });
+        }
+
+        const modalClearConsoleBtn = el("modal-clear-console");
+        if (modalClearConsoleBtn) {
+          modalClearConsoleBtn.addEventListener("click", () => {
+            const modalConsole = el("modal-console");
+            if (modalConsole) {
+              modalConsole.textContent = "";
+            }
+          });
+        }
+
+        const modalSalesMessage = el("modal-sales-message");
+        if (modalSalesMessage) {
+          modalSalesMessage.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && e.ctrlKey) {
+              const btn = el("modal-send-sales");
+              if (btn) btn.click();
+            }
+          });
+        }
       });
-    });
-
-    el("send-voice").addEventListener("click", async () => {
-      const file = el("voice-file").files[0];
-      if (!file) return alert("Select an audio file");
-
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("session_id", el("session-id").value.trim());
-      formData.append("user_id", String(currentUserId()));
-
-      const url = `${baseUrl()}/voice`;
-      appendConsole(`→ POST ${url}`, "[multipart/form-data]");
-      const response = await fetch(url, { method: "POST", body: formData });
-      const text = await response.text();
-      let data;
-      try { data = JSON.parse(text); } catch { data = text; }
-      appendConsole(`← ${response.status} ${url}`, data);
-
-      if (!response.ok) {
-        alert(`Voice request failed: ${typeof data === "string" ? data : JSON.stringify(data)}`);
-        return;
-      }
-
-      if (data.session_id) el("session-id").value = data.session_id;
-      if (data.reply) addChat("assistant", data.reply);
-    });
-
-    el("clear-console").addEventListener("click", () => {
-      el("console").textContent = "";
-    });
-  </script>
-</body>
+    </script>
+  </body>
 </html>

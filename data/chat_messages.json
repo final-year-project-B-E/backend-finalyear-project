@@ -1020,5 +1020,149 @@
     "content": "For your party, I'd recommend the Elegant Evening Gown at $299.99. This stunning floor-length gown with sequin embroidery is perfect for formal parties and special occasions. It comes in Black, Navy Blue, and Burgundy with sizes XS-XL available.\n\nIf it's a more casual party, the Summer Floral Dress at $89.99 would be a great option - it's light and breezy with floral prints in Blue or Pink.\n\nWhich type of party are you attending? This will help me recommend the best fit for your specific event.",
     "metadata": {},
     "created_at": "2026-02-13T02:50:48.595324"
+  },
+  {
+    "id": 113,
+    "session_id": "sess_5b3add1bbd0b",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hiii",
+    "metadata": {},
+    "created_at": "2026-02-12T21:50:15.859191"
+  },
+  {
+    "id": 114,
+    "session_id": "sess_5b3add1bbd0b",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Hello! Welcome to our fashion boutique. I'm here to help you find the perfect outfit for any occasion.\n\nI see we have some beautiful options currently available - from a breezy Summer Floral Dress at $89.99 perfect for casual outings, to an Elegant Evening Gown at $299.99 for formal events, and a Professional Blazer Dress at $159.99 for business occasions.\n\nWhat type of occasion are you shopping for today? This will help me recommend the most suitable pieces for you.",
+    "metadata": {},
+    "created_at": "2026-02-12T21:50:31.725710"
+  },
+  {
+    "id": 115,
+    "session_id": "sess_5b3add1bbd0b",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "im devesh attending a wedding in a week so i need your help to dress up",
+    "metadata": {},
+    "created_at": "2026-02-12T21:51:09.530211"
+  },
+  {
+    "id": 116,
+    "session_id": "sess_5b3add1bbd0b",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Hello Devesh! I'd be happy to help you find the perfect outfit for your wedding next week.\n\nBased on your formal occasion, I recommend our **Elegant Evening Gown** - it's specifically designed for formal events like weddings. Here are the details:\n\n- **Price**: $299.99\n- **Material**: Silk with sequin embroidery\n- **Available colors**: Black, Navy Blue, Burgundy\n- **Available sizes**: XS, S, M, L, XL\n- **Stock**: 25 units available\n\nThis stunning floor-length gown features beautiful sequin embroidery that will make you stand out at the wedding. The silk material offers both elegance and comfort for a full day of celebrations.\n\nWould you like me to check if your preferred size and color are in stock, or would you like to see any other formal options?",
+    "metadata": {},
+    "created_at": "2026-02-12T21:51:35.300454"
+  },
+  {
+    "id": 117,
+    "session_id": "sess_5b3add1bbd0b",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hiii",
+    "metadata": {},
+    "created_at": "2026-02-12T21:52:01.152680"
+  },
+  {
+    "id": 118,
+    "session_id": "sess_5b3add1bbd0b",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Hello! I remember we were discussing wedding attire for you. Would you like to continue exploring the Elegant Evening Gown options for your upcoming wedding, or would you prefer to see other formal wear choices?",
+    "metadata": {},
+    "created_at": "2026-02-12T21:52:07.196678"
+  },
+  {
+    "id": 119,
+    "session_id": "sess_e5c0611f346c",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hii",
+    "metadata": {},
+    "created_at": "2026-02-12T22:11:25.037777"
+  },
+  {
+    "id": 120,
+    "session_id": "sess_e5c0611f346c",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Hello! I'm here to help you find the perfect outfit today. \n\nI see we have some beautiful options available:\n- Summer Floral Dress ($89.99) - perfect for casual outings\n- Elegant Evening Gown ($299.99) - stunning for formal events\n- Professional Blazer Dress ($159.99) - ideal for business occasions\n\nWhat type of event or occasion are you shopping for today?",
+    "metadata": {},
+    "created_at": "2026-02-12T22:11:43.944135"
+  },
+  {
+    "id": 121,
+    "session_id": "sess_34f713a7b1d3",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hello",
+    "metadata": {},
+    "created_at": "2026-02-12T22:18:17.823207"
+  },
+  {
+    "id": 122,
+    "session_id": "sess_34f713a7b1d3",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Hello John! Welcome back. As a valued customer with a loyalty score of 125, I'm here to help you find the perfect piece for your wardrobe. \n\nBased on our current collection, I can assist you with casual summer outings, formal events, or business professional attire. What occasion are you shopping for today?",
+    "metadata": {},
+    "created_at": "2026-02-12T22:18:28.680547"
+  },
+  {
+    "id": 123,
+    "session_id": "sess_34f713a7b1d3",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hello",
+    "metadata": {},
+    "created_at": "2026-02-12T22:20:20.638461"
+  },
+  {
+    "id": 124,
+    "session_id": "sess_34f713a7b1d3",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Hello! I'm here to help you find the perfect fashion pieces. Based on your profile, I can see you're a valued customer with us. \n\nWhat are you looking for today? I can help you with our current selection including:\n- Summer Floral Dress ($89.99) - perfect for casual outings\n- Elegant Evening Gown ($299.99) - ideal for formal events\n- Professional Blazer Dress ($159.99) - great for business occasions\n\nWhat type of occasion or style are you shopping for?",
+    "metadata": {},
+    "created_at": "2026-02-12T22:20:31.503379"
+  },
+  {
+    "id": 125,
+    "session_id": "sess_733c6286a135",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hello im a new user",
+    "metadata": {},
+    "created_at": "2026-02-12T22:20:42.321256"
+  },
+  {
+    "id": 126,
+    "session_id": "sess_733c6286a135",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Hello John! I'm Clara, your personal fashion sales strategist. Welcome back to our store! \n\nBased on your profile, I see you've shopped with us before. I'd love to help you find the perfect outfit for your needs. We have some beautiful options currently available:\n\n- Summer Floral Dress ($89.99) - Perfect for casual outings and garden parties\n- Elegant Evening Gown ($299.99) - Stunning floor-length gown for formal events\n- Professional Blazer Dress ($159.99) - Ideal for business settings\n\nWhat type of occasion or style are you looking for today? This will help me provide more targeted recommendations.",
+    "metadata": {},
+    "created_at": "2026-02-12T22:20:56.428325"
+  },
+  {
+    "id": 127,
+    "session_id": "sess_733c6286a135",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "i want a party wear",
+    "metadata": {},
+    "created_at": "2026-02-12T22:21:32.986546"
+  },
+  {
+    "id": 128,
+    "session_id": "sess_733c6286a135",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "For party wear, I'd recommend the Elegant Evening Gown at $299.99. It's a stunning floor-length gown with sequin embroidery, perfect for formal parties and evening events. We have 25 in stock in sizes XS-XL in Black, Navy Blue, or Burgundy.\n\nIf you're looking for something more casual for daytime parties, the Summer Floral Dress at $89.99 could work well - it's light and breezy with floral prints, and we have 50 available in sizes S-XL.\n\nWhich type of party are you attending? This will help me recommend the most suitable option.",
+    "metadata": {},
+    "created_at": "2026-02-12T22:21:51.222984"
   }
 ]
