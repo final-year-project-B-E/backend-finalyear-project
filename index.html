@@ -56,17 +56,7 @@
           <input id="min-price" type="number" step="0.01" placeholder="Min price" class="border border-slate-300 rounded-xl px-3 py-2" />
           <input id="max-price" type="number" step="0.01" placeholder="Max price" class="border border-slate-300 rounded-xl px-3 py-2" />
         </div>
-        <div class="flex gap-2">
-          <button id="load-products" class="bg-emerald-600 text-white rounded-xl px-4 py-2 font-semibold">Load Products</button>
-          <button id="browse-products" class="bg-emerald-100 text-emerald-700 rounded-xl px-4 py-2 font-semibold border border-emerald-300">Browse Dropdown</button>
-        </div>
-        <label class="text-sm block">
-          <span class="font-semibold text-slate-700">Browse Products Dropdown</span>
-          <select id="products-dropdown" class="mt-1 w-full border border-slate-300 rounded-xl px-3 py-2 bg-white">
-            <option value="">Load products to browse...</option>
-          </select>
-        </label>
-        <p id="selected-product-info" class="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">No product selected yet.</p>
+        <button id="load-products" class="bg-emerald-600 text-white rounded-xl px-4 py-2 font-semibold">Load Products</button>
       </div>
 
       <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
@@ -125,49 +115,6 @@
       return Number(el("user-id").value || 1);
     }
 
-    let cachedProducts = [];
-
-    function populateProductsDropdown(products) {
-      cachedProducts = Array.isArray(products) ? products : [];
-      const dropdown = el("products-dropdown");
-      dropdown.innerHTML = "";
-
-      if (!cachedProducts.length) {
-        const option = document.createElement("option");
-        option.value = "";
-        option.textContent = "No products found for current filters";
-        dropdown.appendChild(option);
-        el("selected-product-info").textContent = "No product selected yet.";
-        return;
-      }
-
-      const defaultOption = document.createElement("option");
-      defaultOption.value = "";
-      defaultOption.textContent = `Select a product (${cachedProducts.length} found)`;
-      dropdown.appendChild(defaultOption);
-
-      for (const product of cachedProducts) {
-        const option = document.createElement("option");
-        option.value = String(product.id);
-        option.textContent = `${product.product_name} — $${product.price} — stock ${product.stock}`;
-        dropdown.appendChild(option);
-      }
-    }
-
-    function renderSelectedProduct(productId) {
-      const target = cachedProducts.find((product) => String(product.id) === String(productId));
-      if (!target) {
-        el("selected-product-info").textContent = "No product selected yet.";
-        return;
-      }
-
-      el("selected-product-info").textContent =
-        `#${target.id} ${target.product_name} | ${target.occasion} | ${target.dress_category} | $${target.price} | stock ${target.stock}`;
-
-      // prefill cart product ID to speed up checkout testing
-      el("cart-product-id").value = target.id;
-    }
-
     function appendConsole(title, payload) {
       const now = new Date().toLocaleTimeString();
       const line = `[${now}] ${title}\n${typeof payload === "string" ? payload : JSON.stringify(payload, null, 2)}\n\n`;
@@ -224,7 +171,7 @@
       }
     });
 
-    async function loadProductsAndPopulateDropdown() {
+    el("load-products").addEventListener("click", async () => {
       const params = new URLSearchParams();
       const category = el("product-category").value.trim();
       const occasion = el("product-occasion").value.trim();
@@ -234,15 +181,7 @@
       if (occasion) params.set("occasion", occasion);
       if (minPrice) params.set("min_price", minPrice);
       if (maxPrice) params.set("max_price", maxPrice);
-
-      const data = await request(`/products${params.toString() ? `?${params.toString()}` : ""}`);
-      populateProductsDropdown(data.products || []);
-    }
-
-    el("load-products").addEventListener("click", loadProductsAndPopulateDropdown);
-    el("browse-products").addEventListener("click", loadProductsAndPopulateDropdown);
-    el("products-dropdown").addEventListener("change", (event) => {
-      renderSelectedProduct(event.target.value);
+      await request(`/products${params.toString() ? `?${params.toString()}` : ""}`);
     });
 
     el("add-cart").addEventListener("click", async () => {
