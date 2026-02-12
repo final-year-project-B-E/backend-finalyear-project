@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Body, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from schemas import SalesRequest, SalesResponse
 from orchestrator import Orchestrator
 from voice_assistant.voice_assistant import VoiceAssistant
@@ -24,6 +25,11 @@ app.add_middleware(
 
 orchestrator = Orchestrator()
 voice_assistant = VoiceAssistant()
+
+@app.get("/")
+async def dashboard():
+    """Serve local HTML dashboard for manual endpoint testing."""
+    return FileResponse("index.html")
 
 @app.post("/sales", response_model=SalesResponse)
 async def sales_chat(req: SalesRequest):
