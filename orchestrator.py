@@ -1,3 +1,4 @@
+import asyncio
 from typing import Dict, Any, List
 
 from agents.sales_agent import SalesAgent
@@ -41,21 +42,12 @@ class Orchestrator:
             db.add_chat_message(session_id, "user", request.message)
 
         # Get user context
-        user_context = {}
-        if request.user_id:
-            user = db.get_user(request.user_id)
-            if user:
-                user_context = {
-                    "name": f"{user['first_name']} {user['last_name']}",
-                    "loyalty_score": user['loyalty_score'],
-                    "past_orders": db.get_user_orders(request.user_id),
-                    "user_id": request.user_id
-                }
+        user_context = self._build_user_context(request.user_id, session_id)
         
         # Get chat history
         chat_history = []
         if session_id:
-            messages = db.get_chat_history(session_id, limit=14)
+            messages = db.get_chat_history(session_id, limit=10)
             chat_history = [
                 {"role": msg["message_type"], "content": msg["content"]}
                 for msg in messages
@@ -116,6 +108,19 @@ class Orchestrator:
         base_context["style_preferences"] = self._derive_style_preferences(cross_messages)
 
         return base_context
+
+    def _derive_style_preferences(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
+        colors = ["black", "white", "blue", "navy", "red", "green", "pink", "beige", "burgundy"]
+        color_hits: Dict[str, int] = {}
+
+        for message in messages:
+            content = (message.get("content") or "").lower()
+            for color in colors:
+                if color in content:
+                    color_hits[color] = color_hits.get(color, 0) + 1
+
+        ranked_colors = sorted(color_hits.items(), key=lambda item: item[1], reverse=True)
+        return {"colors": [color for color, _ in ranked_colors[:3]]}
     def _detect_intents(self, message: str) -> List[str]:
         message_lower = message.lower()
         intents: List[str] = []
@@ -144,15 +149,20 @@ class Orchestrator:
         message: str,
         user_context: Dict[str, Any],
     ) -> List[Dict[str, str]]:
+        intents_to_call = [intent for intent in intents if intent != "sales"]
+        if not intents_to_call:
+            return []
+
+        tasks = [self._delegate_to_agent(intent, message, user_context) for intent in intents_to_call]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
         outputs: List[Dict[str, str]] = []
-
-        for intent in intents:
-            if intent == "sales":
+        for intent, result in zip(intents_to_call, results):
+            if isinstance(result, Exception):
+                outputs.append({"source": f"{intent}_agent", "content": f"{intent} agent error: {str(result)}"})
                 continue
-
-            response = await self._delegate_to_agent(intent, message, user_context)
-            if response:
-                outputs.append({"source": f"{intent}_agent", "content": response})
+            if result:
+                outputs.append({"source": f"{intent}_agent", "content": result})
 
         return outputs
 

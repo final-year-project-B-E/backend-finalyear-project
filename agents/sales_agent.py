@@ -81,7 +81,7 @@ Response quality bar:
         rag_context: Dict[str, Any],
     ) -> str:
         prompt = self._build_prompt(user_context, channel, tool_outputs, rag_context)
-        messages = [{"role": "system", "content": prompt}] + history[-12:] + [{"role": "user", "content": user_message}]
+        messages = [{"role": "system", "content": prompt}] + history[-8:] + [{"role": "user", "content": user_message}]
 
         llm_reply = self._call_openrouter(messages)
         if llm_reply:
@@ -105,14 +105,14 @@ Response quality bar:
 
         if user_context.get("cross_channel_memory"):
             prompt += "\nCross-channel memory snippets:\n"
-            for item in user_context["cross_channel_memory"][:8]:
+            for item in user_context["cross_channel_memory"][:4]:
                 prompt += f"- {item}\n"
 
         prompt += "\nRAG Context:\n"
         prompt += f"- Parsed Intent: {rag_context.get('intent')}\n"
         prompt += f"- Parsed Preferences: {rag_context.get('preferences')}\n"
         prompt += "- Matched Products:\n"
-        for product in rag_context.get("matched_products", [])[:5]:
+        for product in rag_context.get("matched_products", [])[:4]:
             prompt += (
                 f"  * {product['product_name']} | ${product['price']} | occasion={product['occasion']} "
                 f"| category={product['dress_category']} | stock={product['stock']}\n"
@@ -120,8 +120,8 @@ Response quality bar:
 
         if tool_outputs:
             prompt += "\nSpecialist agent outputs (may be verbose; summarize smartly):\n"
-            for idx, output in enumerate(tool_outputs[:4], 1):
-                prompt += f"{idx}. {output.get('source')}: {str(output.get('content'))[:1000]}\n"
+            for idx, output in enumerate(tool_outputs[:3], 1):
+                prompt += f"{idx}. {output.get('source')}: {str(output.get('content'))[:550]}\n"
 
         prompt += "\nHow to answer:\n"
         prompt += "1) Start with a strong direct answer and recommendations.\n"
@@ -147,9 +147,9 @@ Response quality bar:
                     "model": MODEL,
                     "messages": messages,
                     "temperature": 0.25,
-                    "max_tokens": 800,
+                    "max_tokens": 500,
                 },
-                timeout=50,
+                timeout=18,
             )
             if response.status_code != 200:
                 return ""
