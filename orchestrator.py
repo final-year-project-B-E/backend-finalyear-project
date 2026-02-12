@@ -39,10 +39,21 @@ class Orchestrator:
 
         if session_id:
             db.add_chat_message(session_id, "user", request.message)
-
-        user_context = self._build_user_context(request.user_id)
-
-        chat_history: List[Dict[str, str]] = []
+        
+        # Get user context
+        user_context = {}
+        if request.user_id:
+            user = db.get_user(request.user_id)
+            if user:
+                user_context = {
+                    "name": f"{user['first_name']} {user['last_name']}",
+                    "loyalty_score": user['loyalty_score'],
+                    "past_orders": db.get_user_orders(request.user_id),
+                    "user_id": request.user_id
+                }
+        
+        # Get chat history
+        chat_history = []
         if session_id:
             messages = db.get_chat_history(session_id, limit=12)
             chat_history = [

@@ -38,6 +38,11 @@ async def favicon():
     """Avoid browser 404 noise when loading the dashboard."""
     return Response(status_code=204)
 
+@app.get("/")
+async def dashboard():
+    """Serve local HTML dashboard for manual endpoint testing."""
+    return FileResponse("index.html")
+
 @app.post("/sales", response_model=SalesResponse)
 async def sales_chat(req: SalesRequest):
     """Main endpoint for sales conversations"""
