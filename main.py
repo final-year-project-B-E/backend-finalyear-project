@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from schemas import SalesRequest, SalesResponse
 from orchestrator import Orchestrator
-from voice_assistant.voice_assistant import VoiceAssistant
 import os
 import tempfile
 import subprocess
@@ -29,7 +28,7 @@ app.add_middleware(
 )
 
 orchestrator = Orchestrator()
-voice_assistant = VoiceAssistant()
+
 BASE_DIR = Path(__file__).resolve().parent
 
 @app.get("/")

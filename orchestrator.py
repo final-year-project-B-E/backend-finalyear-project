@@ -39,15 +39,7 @@ class Orchestrator:
 
         if session_id:
             db.add_chat_message(session_id, "user", request.message)
-<<<<<<< HEAD
 
-        user_context = self._build_user_context(request.user_id, session_id)
-
-        chat_history: List[Dict[str, str]] = []
-        if session_id:
-            messages = db.get_chat_history(session_id, limit=14)
-=======
-        
         # Get user context
         user_context = {}
         if request.user_id:
@@ -63,8 +55,7 @@ class Orchestrator:
         # Get chat history
         chat_history = []
         if session_id:
-            messages = db.get_chat_history(session_id, limit=12)
->>>>>>> main
+            messages = db.get_chat_history(session_id, limit=14)
             chat_history = [
                 {"role": msg["message_type"], "content": msg["content"]}
                 for msg in messages
@@ -94,16 +85,11 @@ class Orchestrator:
             action_data=action_data,
         )
 
-<<<<<<< HEAD
-    def _build_user_context(self, user_id: int | None, session_id: str | None) -> Dict[str, Any]:
-=======
-    def _build_user_context(self, user_id: int | None) -> Dict[str, Any]:
->>>>>>> main
+    def _build_user_context(self, user_id: int | None, session_id: str | None = None) -> Dict[str, Any]:
         if not user_id:
             return {}
 
         user = db.get_user(user_id)
-<<<<<<< HEAD
         base_context = {
             "user_id": user_id,
             "past_orders": db.get_user_orders(user_id),
@@ -130,45 +116,12 @@ class Orchestrator:
         base_context["style_preferences"] = self._derive_style_preferences(cross_messages)
 
         return base_context
-
-    def _derive_style_preferences(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
-        text_blob = " ".join((msg.get("content") or "").lower() for msg in messages if msg.get("message_type") == "user")
-        preferences: Dict[str, Any] = {"colors": []}
-
-        colors = ["black", "white", "navy", "blue", "red", "green", "pink", "beige", "burgundy"]
-        preferences["colors"] = [color for color in colors if color in text_blob]
-
-        if "formal" in text_blob:
-            preferences["occasion"] = "Formal"
-        elif "casual" in text_blob:
-            preferences["occasion"] = "Casual"
-        elif "business" in text_blob or "office" in text_blob:
-            preferences["occasion"] = "Business"
-
-        return preferences
-
-=======
-        if not user:
-            return {"user_id": user_id}
-
-        return {
-            "name": f"{user['first_name']} {user['last_name']}",
-            "loyalty_score": user.get("loyalty_score", 0),
-            "past_orders": db.get_user_orders(user_id),
-            "user_id": user_id,
-        }
-
->>>>>>> main
     def _detect_intents(self, message: str) -> List[str]:
         message_lower = message.lower()
         intents: List[str] = []
 
         intent_rules = {
-<<<<<<< HEAD
             "recommendation": ["recommend", "suggest", "find", "looking for", "style", "dress", "occasion", "formal"],
-=======
-            "recommendation": ["recommend", "suggest", "find", "looking for", "style"],
->>>>>>> main
             "inventory": ["stock", "available", "in stock", "inventory", "size availability"],
             "payment": ["pay", "payment", "checkout", "buy", "purchase", "price total"],
             "fulfillment": ["delivery", "ship", "pickup", "arrive", "track", "shipping"],
