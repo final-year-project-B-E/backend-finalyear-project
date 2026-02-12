@@ -3,6 +3,7 @@ import { Header } from './Header';
 import { Footer } from './Footer';
 import { CartDrawer } from './CartDrawer';
 import { BottomNav } from './BottomNav';
+import { ChatbotWidget } from './ChatbotWidget';
 
 interface LayoutProps {
   children: ReactNode;
@@ -18,6 +19,7 @@ export const Layout = ({ children }: LayoutProps) => {
       <Footer />
       <CartDrawer />
       <BottomNav />
+      <ChatbotWidget />
     </div>
   );
 };

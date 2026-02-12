@@ -1,306 +1,309 @@
-import json
 import os
-from typing import List, Dict, Any, Optional
-from datetime import datetime
 import uuid
-from threading import RLock
+import hashlib
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from pymongo import MongoClient, ASCENDING
+from pymongo.collection import Collection
+
 
 class Database:
-    def __init__(self, data_dir: str = "data"):
-        self.data_dir = data_dir
-        self._lock = RLock()
-        self._managed_files = {
-            "users": "users.json",
-            "products": "products.json",
-            "carts": "carts.json",
-            "orders": "orders.json",
-            "order_items": "order_items.json",
-            "chat_sessions": "chat_sessions.json",
-            "chat_messages": "chat_messages.json",
-            "agent_tasks": "agent_tasks.json"
+    def __init__(self):
+        username = os.getenv("MONGODB_USERNAME", "<db_username>")
+        password = os.getenv("MONGODB_PASSWORD", "<db_password>")
+        uri_template = os.getenv(
+            "MONGODB_URI",
+            "mongodb+srv://<db_username>:<db_password>@cluster0.xlq8iwb.mongodb.net/abfrl?appName=Cluster0",
+        )
+        uri = uri_template.replace("<db_username>", username).replace("<db_password>", password)
+        self.client = MongoClient(uri)
+        self.db = self.client[os.getenv("MONGODB_DB", "abfrl")]
+
+        self.users: Collection = self.db["users"]
+        self.products: Collection = self.db["products"]
+        self.carts: Collection = self.db["carts"]
+        self.orders: Collection = self.db["orders"]
+        self.order_items: Collection = self.db["order_items"]
+        self.chat_sessions: Collection = self.db["chat_sessions"]
+        self.chat_messages: Collection = self.db["chat_messages"]
+        self.auth_tokens: Collection = self.db["auth_tokens"]
+
+        self._ensure_indexes()
+        self._seed_products_if_empty()
+
+    def _ensure_indexes(self):
+        self.users.create_index([("id", ASCENDING)], unique=True)
+        self.users.create_index([("email", ASCENDING)], unique=True)
+        self.products.create_index([("id", ASCENDING)], unique=True)
+        self.carts.create_index([("id", ASCENDING)], unique=True)
+        self.orders.create_index([("id", ASCENDING)], unique=True)
+        self.order_items.create_index([("id", ASCENDING)], unique=True)
+        self.chat_sessions.create_index([("session_id", ASCENDING)], unique=True)
+        self.auth_tokens.create_index([("token", ASCENDING)], unique=True)
+
+    def _seed_products_if_empty(self):
+        if self.products.count_documents({}) > 0:
+            return
+        try:
+            import json
+            from pathlib import Path
+
+            data_file = Path(__file__).resolve().parent / "data" / "products.json"
+            if data_file.exists():
+                with open(data_file, "r", encoding="utf-8") as f:
+                    products = json.load(f)
+                if products:
+                    self.products.insert_many(products)
+        except Exception:
+            pass
+
+    def _next_id(self, collection: Collection) -> int:
+        doc = collection.find_one(sort=[("id", -1)])
+        return (doc.get("id", 0) if doc else 0) + 1
+
+    def _clean(self, doc: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        if not doc:
+            return doc
+        doc.pop("_id", None)
+        return doc
+
+    def _hash_password(self, password: str) -> str:
+        return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+    # Auth & users
+    def create_user(self, email: str, password: str, first_name: str, last_name: str) -> Dict[str, Any]:
+        now = datetime.utcnow().isoformat()
+        user = {
+            "id": self._next_id(self.users),
+            "email": email.lower(),
+            "password_hash": self._hash_password(password),
+            "first_name": first_name,
+            "last_name": last_name,
+            "phone": None,
+            "address": None,
+            "city": None,
+            "state": None,
+            "country": None,
+            "postal_code": None,
+            "loyalty_score": 0,
+            "is_active": True,
+            "is_admin": False,
+            "created_at": now,
+            "updated_at": now,
         }
-        self._ensure_data_files()
-        self.load_all_data()
+        self.users.insert_one(user)
+        return self._sanitize_user(user)
 
-    def _ensure_data_files(self):
-        """Ensure the data directory and managed JSON files exist."""
-        os.makedirs(self.data_dir, exist_ok=True)
-        for filename in self._managed_files.values():
-            filepath = os.path.join(self.data_dir, filename)
-            if not os.path.exists(filepath):
-                with open(filepath, 'w') as f:
-                    json.dump([], f)
-    
-    def load_all_data(self):
-        """Load all JSON files into memory"""
-        self.users = self._load_json("users.json")
-        self.products = self._load_json("products.json")
-        self.carts = self._load_json("carts.json")
-        self.orders = self._load_json("orders.json")
-        self.order_items = self._load_json("order_items.json")
-        self.chat_sessions = self._load_json("chat_sessions.json")
-        self.chat_messages = self._load_json("chat_messages.json")
-        self.agent_tasks = self._load_json("agent_tasks.json")
-    
-    def _load_json(self, filename: str) -> List[Dict]:
-        filepath = os.path.join(self.data_dir, filename)
-        if os.path.exists(filepath):
-            with open(filepath, 'r') as f:
-                return json.load(f)
-        return []
-    
-    def _save_json(self, filename: str, data: List[Dict]):
-        filepath = os.path.join(self.data_dir, filename)
-        with open(filepath, 'w') as f:
-            json.dump(data, f, indent=2, default=str)
+    def authenticate_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
+        user = self.users.find_one({"email": email.lower()})
+        if not user:
+            return None
+        if user.get("password_hash") != self._hash_password(password):
+            return None
+        return self._clean(user)
 
-    def _persist(self, key: str):
-        """Persist a managed in-memory collection to the backing JSON file."""
-        filename = self._managed_files[key]
-        self._save_json(filename, getattr(self, key))
+    def create_auth_token(self, user_id: int) -> str:
+        token = f"tok_{uuid.uuid4().hex}"
+        self.auth_tokens.insert_one({
+            "token": token,
+            "user_id": user_id,
+            "created_at": datetime.utcnow().isoformat(),
+        })
+        return token
 
-    def _next_id(self, items: List[Dict]) -> int:
-        return max([item.get("id", 0) for item in items], default=0) + 1
-    
-    # User operations
-    def get_user(self, user_id: int) -> Optional[Dict]:
-        for user in self.users:
-            if user["id"] == user_id:
-                return user
-        return None
-    
-    def get_user_by_email(self, email: str) -> Optional[Dict]:
-        for user in self.users:
-            if user["email"].lower() == email.lower():
-                return user
-        return None
-    
+    def get_user_by_token(self, token: str) -> Optional[Dict[str, Any]]:
+        mapping = self.auth_tokens.find_one({"token": token})
+        if not mapping:
+            return None
+        return self.get_user(mapping["user_id"])
+
+    def delete_token(self, token: str):
+        self.auth_tokens.delete_one({"token": token})
+
+    def _sanitize_user(self, user: Dict[str, Any]) -> Dict[str, Any]:
+        clean = self._clean(dict(user))
+        clean.pop("password_hash", None)
+        return clean
+
+    def get_user(self, user_id: int) -> Optional[Dict[str, Any]]:
+        user = self.users.find_one({"id": user_id})
+        if not user:
+            return None
+        return self._sanitize_user(user)
+
+    def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        user = self.users.find_one({"email": email.lower()})
+        if not user:
+            return None
+        return self._sanitize_user(user)
+
     def update_user_loyalty(self, user_id: int, points: int):
-        with self._lock:
-            for user in self.users:
-                if user["id"] == user_id:
-                    user["loyalty_score"] = user.get("loyalty_score", 0) + points
-                    user["updated_at"] = datetime.now().isoformat()
-                    self._persist("users")
-                    return
-    
-    # Product operations
-    def get_product(self, product_id: int) -> Optional[Dict]:
-        for product in self.products:
-            if product["id"] == product_id:
-                return product
-        return None
-    
-    def search_products(self, category: Optional[str] = None, 
-                       occasion: Optional[str] = None,
-                       min_price: Optional[float] = None,
-                       max_price: Optional[float] = None) -> List[Dict]:
-        results = []
-        for product in self.products:
-            if category and product["dress_category"] != category:
-                continue
-            if occasion and product["occasion"] != occasion:
-                continue
-            if min_price and product["price"] < min_price:
-                continue
-            if max_price and product["price"] > max_price:
-                continue
-            results.append(product)
-        return results
-    
+        self.users.update_one(
+            {"id": user_id},
+            {"$inc": {"loyalty_score": points}, "$set": {"updated_at": datetime.utcnow().isoformat()}},
+        )
+
+    # Products
+    def get_product(self, product_id: int) -> Optional[Dict[str, Any]]:
+        return self._clean(self.products.find_one({"id": product_id}))
+
+    def search_products(
+        self,
+        category: Optional[str] = None,
+        occasion: Optional[str] = None,
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+    ) -> List[Dict[str, Any]]:
+        query: Dict[str, Any] = {}
+        if category:
+            query["dress_category"] = category
+        if occasion:
+            query["occasion"] = occasion
+        if min_price is not None or max_price is not None:
+            query["price"] = {}
+            if min_price is not None:
+                query["price"]["$gte"] = min_price
+            if max_price is not None:
+                query["price"]["$lte"] = max_price
+        return [self._clean(d) for d in self.products.find(query)]
+
     def update_stock(self, product_id: int, quantity: int):
-        with self._lock:
-            for product in self.products:
-                if product["id"] == product_id:
-                    product["stock"] = max(0, product["stock"] - quantity)
-                    product["updated_at"] = datetime.now().isoformat()
-                    self._persist("products")
-                    return
-    
-    # Cart operations
-    def get_user_cart(self, user_id: int) -> List[Dict]:
-        cart_items = []
-        for item in self.carts:
-            if item["user_id"] == user_id:
-                product = self.get_product(item["product_id"])
-                if product:
-                    cart_items.append({
-                        **item,
-                        "product": product
-                    })
-        return cart_items
-    
+        product = self.get_product(product_id)
+        if not product:
+            return
+        new_stock = max(0, int(product.get("stock", 0)) - quantity)
+        self.products.update_one(
+            {"id": product_id},
+            {"$set": {"stock": new_stock, "updated_at": datetime.utcnow().isoformat()}},
+        )
+
+    # Cart
+    def get_user_cart(self, user_id: int) -> List[Dict[str, Any]]:
+        items = [self._clean(d) for d in self.carts.find({"user_id": user_id})]
+        output = []
+        for item in items:
+            product = self.get_product(item["product_id"])
+            if product:
+                output.append({**item, "product": product})
+        return output
+
     def add_to_cart(self, user_id: int, product_id: int, quantity: int = 1):
-        with self._lock:
-        # Check if item already in cart
-            for item in self.carts:
-                if item["user_id"] == user_id and item["product_id"] == product_id:
-                    item["quantity"] += quantity
-                    item["added_at"] = datetime.now().isoformat()
-                    self._persist("carts")
-                    return
-        
-        # Add new item
-            new_item = {
-                "id": self._next_id(self.carts),
-                "user_id": user_id,
-                "product_id": product_id,
-                "quantity": quantity,
-                "added_at": datetime.now().isoformat()
-            }
-            self.carts.append(new_item)
-            self._persist("carts")
+        item = self.carts.find_one({"user_id": user_id, "product_id": product_id})
+        if item:
+            self.carts.update_one(
+                {"id": item["id"]},
+                {"$inc": {"quantity": quantity}, "$set": {"added_at": datetime.utcnow().isoformat()}},
+            )
+            return
+        self.carts.insert_one({
+            "id": self._next_id(self.carts),
+            "user_id": user_id,
+            "product_id": product_id,
+            "quantity": quantity,
+            "added_at": datetime.utcnow().isoformat(),
+        })
 
     def clear_user_cart(self, user_id: int):
-        with self._lock:
-            self.carts = [item for item in self.carts if item["user_id"] != user_id]
-            self._persist("carts")
-    
-    # Order operations
-    def create_order(self, user_id: int, cart_items: List[Dict], 
-                    shipping_address: str, billing_address: str,
-                    payment_method: str) -> Dict:
-        with self._lock:
-            # Calculate totals
-            subtotal = sum(item["product"]["price"] * item["quantity"] for item in cart_items)
-            tax = subtotal * 0.08  # 8% tax
-            shipping = 9.99 if subtotal < 100 else 0
-            final_amount = subtotal + tax + shipping
+        self.carts.delete_many({"user_id": user_id})
 
-            # Generate order number
-            order_number = f"ORD-{datetime.now().strftime('%Y%m%d')}-{len(self.orders) + 1:04d}"
+    # Orders
+    def create_order(self, user_id: int, cart_items: List[Dict[str, Any]], shipping_address: str, billing_address: str, payment_method: str) -> Dict[str, Any]:
+        subtotal = sum(item["product"]["price"] * item["quantity"] for item in cart_items)
+        tax = subtotal * 0.08
+        shipping = 9.99 if subtotal < 100 else 0
+        final_amount = subtotal + tax + shipping
+        order_id = self._next_id(self.orders)
+        order = {
+            "id": order_id,
+            "order_number": f"ORD-{datetime.utcnow().strftime('%Y%m%d')}-{order_id:04d}",
+            "user_id": user_id,
+            "total_amount": float(subtotal),
+            "tax_amount": float(tax),
+            "shipping_amount": float(shipping),
+            "discount_amount": 0.0,
+            "final_amount": float(final_amount),
+            "payment_status": "pending",
+            "payment_method": payment_method,
+            "transaction_id": None,
+            "shipping_address": shipping_address,
+            "billing_address": billing_address,
+            "order_status": "processing",
+            "tracking_number": None,
+            "notes": "",
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
+        }
+        self.orders.insert_one(order)
 
-            # Create order
-            new_order_id = self._next_id(self.orders)
-            order = {
-                "id": new_order_id,
-                "order_number": order_number,
-                "user_id": user_id,
-                "total_amount": float(subtotal),
-                "tax_amount": float(tax),
-                "shipping_amount": float(shipping),
-                "discount_amount": 0.0,
-                "final_amount": float(final_amount),
-                "payment_status": "pending",
-                "payment_method": payment_method,
-                "transaction_id": None,
-                "shipping_address": shipping_address,
-                "billing_address": billing_address,
-                "order_status": "processing",
-                "tracking_number": None,
-                "notes": "",
-                "created_at": datetime.now().isoformat(),
-                "updated_at": datetime.now().isoformat()
+        for cart_item in cart_items:
+            order_item = {
+                "id": self._next_id(self.order_items),
+                "order_id": order_id,
+                "product_id": cart_item["product_id"],
+                "product_name": cart_item["product"]["product_name"],
+                "quantity": cart_item["quantity"],
+                "unit_price": float(cart_item["product"]["price"]),
+                "total_price": float(cart_item["product"]["price"] * cart_item["quantity"]),
+                "created_at": datetime.utcnow().isoformat(),
             }
-            self.orders.append(order)
+            self.order_items.insert_one(order_item)
+            self.update_stock(cart_item["product_id"], cart_item["quantity"])
 
-            # Create order items
-            for cart_item in cart_items:
-                order_item = {
-                    "id": self._next_id(self.order_items),
-                    "order_id": new_order_id,
-                    "product_id": cart_item["product_id"],
-                    "product_name": cart_item["product"]["product_name"],
-                    "quantity": cart_item["quantity"],
-                    "unit_price": float(cart_item["product"]["price"]),
-                    "total_price": float(cart_item["product"]["price"] * cart_item["quantity"]),
-                    "created_at": datetime.now().isoformat()
-                }
-                self.order_items.append(order_item)
+        return order
 
-                # Reduce stock for each ordered item
-                self.update_stock(cart_item["product_id"], cart_item["quantity"])
+    def get_user_orders(self, user_id: int) -> List[Dict[str, Any]]:
+        orders = [self._clean(o) for o in self.orders.find({"user_id": user_id})]
+        output = []
+        for order in orders:
+            items = [self._clean(i) for i in self.order_items.find({"order_id": order["id"]})]
+            output.append({**order, "items": items})
+        return output
 
-            self._persist("orders")
-            self._persist("order_items")
-
-            return order
-
-    def get_user_orders(self, user_id: int) -> List[Dict]:
-        orders = []
-        for order in self.orders:
-            if order["user_id"] == user_id:
-                items = [item for item in self.order_items if item["order_id"] == order["id"]]
-                orders.append({**order, "items": items})
-        return orders
-    
-    # Chat operations
+    # Chat
     def create_chat_session(self, user_id: int, channel: str = "web") -> str:
         session_id = f"sess_{uuid.uuid4().hex[:12]}"
-        new_session = {
+        self.chat_sessions.insert_one({
             "id": self._next_id(self.chat_sessions),
             "session_id": session_id,
             "user_id": user_id,
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat(),
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
             "status": "active",
             "current_agent": "sales_agent",
-            "context": {
-                "channel": channel,
-                "conversation_history": [],
-                "current_task": None
-            },
-            "metadata": {
-                "channel": channel,
-                "device": "unknown"
-            }
-        }
-        with self._lock:
-            self.chat_sessions.append(new_session)
-            self._persist("chat_sessions")
+            "context": {"channel": channel, "conversation_history": [], "current_task": None},
+            "metadata": {"channel": channel, "device": "unknown"},
+        })
         return session_id
 
-    def get_or_create_chat_session(self, user_id: int, session_id: Optional[str] = None,
-                                   channel: str = "web") -> str:
-        if session_id:
-            for session in self.chat_sessions:
-                if session["session_id"] == session_id:
-                    return session_id
+    def get_or_create_chat_session(self, user_id: int, session_id: Optional[str] = None, channel: str = "web") -> str:
+        if session_id and self.chat_sessions.find_one({"session_id": session_id}):
+            return session_id
         return self.create_chat_session(user_id, channel)
-    
-    def add_chat_message(self, session_id: str, role: str, 
-                        content: str, agent_type: Optional[str] = None):
-        new_message = {
+
+    def add_chat_message(self, session_id: str, role: str, content: str, agent_type: Optional[str] = None):
+        self.chat_messages.insert_one({
             "id": self._next_id(self.chat_messages),
             "session_id": session_id,
             "message_type": role,
             "agent_type": agent_type,
             "content": content,
             "metadata": {},
-            "created_at": datetime.now().isoformat()
-        }
-        with self._lock:
-            self.chat_messages.append(new_message)
-            self._persist("chat_messages")
-    
+            "created_at": datetime.utcnow().isoformat(),
+        })
 
-    def get_user_recent_messages(self, user_id: int, limit: int = 12, exclude_session_id: Optional[str] = None) -> List[Dict]:
-        """Get recent messages for a user across sessions/channels for cross-channel memory."""
-        session_ids = {
-            session["session_id"]
-            for session in self.chat_sessions
-            if session.get("user_id") == user_id and session.get("session_id")
-        }
+    def get_user_recent_messages(self, user_id: int, limit: int = 12, exclude_session_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        sessions = [self._clean(s) for s in self.chat_sessions.find({"user_id": user_id})]
+        ids = {s["session_id"] for s in sessions}
         if exclude_session_id:
-            session_ids.discard(exclude_session_id)
+            ids.discard(exclude_session_id)
+        query = {"session_id": {"$in": list(ids)}} if ids else {"session_id": ""}
+        msgs = [self._clean(m) for m in self.chat_messages.find(query).sort("id", -1).limit(limit)]
+        return list(reversed(msgs))
 
-        recent = []
-        for msg in reversed(self.chat_messages):
-            if msg.get("session_id") in session_ids:
-                recent.append(msg)
-                if len(recent) >= limit:
-                    break
+    def get_chat_history(self, session_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+        msgs = [self._clean(m) for m in self.chat_messages.find({"session_id": session_id}).sort("id", -1).limit(limit)]
+        return list(reversed(msgs))
 
-        return list(reversed(recent))
 
-    def get_chat_history(self, session_id: str, limit: int = 10) -> List[Dict]:
-        messages = []
-        for msg in reversed(self.chat_messages):
-            if msg["session_id"] == session_id:
-                messages.append(msg)
-                if len(messages) >= limit:
-                    break
-        return list(reversed(messages))
-
-# Singleton instance
 db = Database()
