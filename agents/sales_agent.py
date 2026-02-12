@@ -10,7 +10,7 @@ from schemas import Channel
 load_dotenv()
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
-MODEL = os.getenv("OPENROUTER_MODEL", "z-ai/glm-4.5-air:free")
+MODEL = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
@@ -218,12 +218,6 @@ Safety / quality:
                     snippets.append(f"- {source}: {content}")
             if snippets:
                 context_line = "\n\nHere’s what I can see right now:\n" + "\n".join(snippets)
-
-        if len(user_message.strip()) <= 3:
-            return (
-                f"{greeting}! Welcome back. I can help you discover products, compare options, check stock, and complete checkout smoothly."
-                f"{context_line}\n\nWould you like recommendations for an occasion, budget, or style right now?"
-            )
 
         if any(word in user_message.lower() for word in ["recommend", "suggest", "find", "dress"]):
             return (
