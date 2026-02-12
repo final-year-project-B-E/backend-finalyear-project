@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Dashboard | PostgreSQL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Smooth transitions */
+        .smooth-transition {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        /* Table row hover effect */
+        .table-row-hover:hover {
+            background-color: rgba(59, 130, 246, 0.05);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 300px;
+            background-color: #1f2937;
+            color: white;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px 15px;
+            position: absolute;
+            z-index: 100;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            word-wrap: break-word;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid #374151;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        /* Loading animation */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        /* Highlight animation */
+        @keyframes highlight {
+            0% {
+                background-color: rgba(59, 130, 246, 0.1);
+            }
+            100% {
+                background-color: transparent;
+            }
+        }
+        
+        .highlight {
+            animation: highlight 2s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Loading overlay -->
+    <div id="loading" class="fixed inset-0 bg-white bg-opacity-90 z-50 flex items-center justify-center">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-gray-700 text-lg font-medium">Loading Database Dashboard...</p>
+            <p class="text-gray-500 text-sm mt-2">Connecting to PostgreSQL on port 8001</p>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="flex h-screen" id="main-container" style="display: none;">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gradient-to-b from-gray-900 to-gray-800 text-white flex flex-col shadow-xl">
+            <!-- Header -->
+            <div class="p-6 border-b border-gray-700">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-xl shadow-lg">
+                        <i class="fas fa-database text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">DB Dashboard</h1>
+                        <div class="flex items-center mt-1">
+                            <span class="inline-block w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                            <p class="text-blue-300 text-sm">PostgreSQL • Port 8001</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table List -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-4">
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-gray-300 text-sm font-semibold uppercase tracking-wider">
+                            <i class="fas fa-table mr-2"></i>Database Tables
+                        </h2>
+                        <span class="bg-gray-700 text-xs px-2 py-1 rounded">{{ total_tables }}</span>
+                    </div>
+                    <div class="space-y-2">
+                        {% for table in tables %}
+                        <a href="/table/{{ table }}" 
+                           class="block smooth-transition p-3 rounded-lg border border-gray-700 {% if selected_table == table %}bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-md border-blue-700{% else %}text-gray-300 hover:bg-gray-800 hover:text-white hover:border-gray-600{% endif %}">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas {% if selected_table == table %}fa-table-cells text-blue-300{% else %}{% if 'user' in table.lower() %}fa-users{% elif 'product' in table.lower() %}fa-box{% elif 'order' in table.lower() %}fa-shopping-cart{% elif 'cart' in table.lower() %}fa-shopping-basket{% elif 'chat' in table.lower() %}fa-comments{% elif 'agent' in table.lower() %}fa-robot{% else %}fa-table{% endif %} text-gray-400{% endif %} text-sm"></i>
+                                    <span class="font-medium truncate" title="{{ table }}">{{ table }}</span>
+                                </div>
+                                <span class="{% if selected_table == table %}bg-blue-700 text-blue-100{% else %}bg-gray-700 text-gray-300{% endif %} text-xs px-2 py-1 rounded">
+                                    {% if loop.index0 < table_stats|length and table_stats[loop.index0] %}
+                                        {{ "{:,}".format(table_stats[loop.index0].count) }}
+                                    {% else %}
+                                        0
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </a>
+                        {% else %}
+                        <div class="text-center py-8 text-gray-400">
+                            <i class="fas fa-database text-3xl mb-3 opacity-50"></i>
+                            <p class="text-sm">No tables found</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-700 bg-gray-900">
+                <div class="text-center">
+                    <p class="text-gray-400 text-sm mb-2">
+                        <i class="fas fa-server mr-2"></i>{{ total_tables }} tables loaded
+                    </p>
+                    <p class="text-gray-500 text-xs">
+                        Connected to PostgreSQL on port 8001
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto custom-scrollbar">
+            <!-- Top Bar -->
+            <div class="bg-gradient-to-r from-white to-gray-50 border-b border-gray-200 px-6 py-4 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-chart-bar text-blue-500 mr-3"></i>
+                            Database Dashboard
+                            <span class="ml-3 text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full">Port 8001</span>
+                        </h1>
+                        <p class="text-gray-600 mt-1 flex items-center">
+                            {% if selected_table %}
+                            <i class="fas fa-eye text-blue-500 mr-2"></i>
+                            Viewing: <span class="font-semibold text-blue-600 ml-1">{{ selected_table }}</span>
+                            {% else %}
+                            <i class="fas fa-mouse-pointer text-gray-500 mr-2"></i>
+                            Select a table from the sidebar to view data
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div id="connection-status" class="bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-2 rounded-lg border border-green-200">
+                            <span class="text-green-700 font-semibold flex items-center">
+                                <i class="fas fa-check-circle mr-2 text-green-600"></i>Connected
+                            </span>
+                        </div>
+                        <button onclick="showServerInfo()" class="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 smooth-transition" title="Server Info">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Alert -->
+            {% if error %}
+            <div class="m-6">
+                <div class="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 p-4 rounded-r-lg shadow">
+                    <div class="flex items-start">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-xl mr-3 mt-1"></i>
+                        <div class="flex-1">
+                            <p class="text-red-800 font-semibold">Database Connection Error</p>
+                            <p class="text-red-700 text-sm mt-1">{{ error }}</p>
+                            <div class="mt-3 flex space-x-3">
+                                <button onclick="retryConnection()" class="bg-red-100 text-red-700 px-4 py-2 rounded text-sm hover:bg-red-200 smooth-transition">
+                                    <i class="fas fa-redo mr-2"></i>Retry Connection
+                                </button>
+                                <button onclick="showConnectionHelp()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded text-sm hover:bg-blue-200 smooth-transition">
+                                    <i class="fas fa-question-circle mr-2"></i>Get Help
+                                </button>
+                            </div>
+                        </div>
+                        <button onclick="hideError()" class="text-gray-400 hover:text-gray-600 ml-4">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 p-6">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 smooth-transition hover:shadow-md hover:border-blue-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm font-medium">Total Tables</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-2" id="total-tables">{{ total_tables }}</p>
+                        </div>
+                        <div class="bg-gradient-to-br from-blue-100 to-blue-50 p-3 rounded-full">
+                            <i class="fas fa-table text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 smooth-transition hover:shadow-md hover:border-green-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm font-medium">Table Columns</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-2" id="total-columns">{{ columns|length }}</p>
+                        </div>
+                        <div class="bg-gradient-to-br from-green-100 to-green-50 p-3 rounded-full">
+                            <i class="fas fa-columns text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 smooth-transition hover:shadow-md hover:border-purple-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm font-medium">Total Rows</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-2" id="total-rows">{{ "{:,}".format(row_count) }}</p>
+                        </div>
+                        <div class="bg-gradient-to-br from-purple-100 to-purple-50 p-3 rounded-full">
+                            <i class="fas fa-list-ol text-purple-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 smooth-transition hover:shadow-md hover:border-yellow-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm font-medium">Showing</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-2" id="showing-rows">{{ "{:,}".format(table_data|length) }}</p>
+                        </div>
+                        <div class="bg-gradient-to-br from-yellow-100 to-yellow-50 p-3 rounded-full">
+                            <i class="fas fa-eye text-yellow-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table Section -->
+            <div class="px-6 pb-6">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <!-- Table Header -->
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between">
+                            <div class="mb-4 md:mb-0">
+                                <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                                    <i class="fas fa-table-cells mr-2 text-blue-500"></i>
+                                    {{ selected_table if selected_table else 'No Table Selected' }}
+                                </h2>
+                                {% if columns %}
+                                <p class="text-gray-600 text-sm mt-1 flex items-center">
+                                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs mr-2">
+                                        {{ columns|length }} columns
+                                    </span>
+                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs mr-2">
+                                        {{ "{:,}".format(row_count) }} total rows
+                                    </span>
+                                    <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
+                                        Showing {{ "{:,}".format(table_data|length) }} rows
+                                    </span>
+                                </p>
+                                {% endif %}
+                            </div>
+                            <div class="flex space-x-3">
+                                <button onclick="refreshData()" 
+                                        class="bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 px-4 py-2 rounded-lg hover:from-blue-100 hover:to-blue-200 smooth-transition flex items-center shadow-sm">
+                                    <i class="fas fa-sync-alt mr-2"></i>Refresh
+                                </button>
+                                <button onclick="exportToCSV()" 
+                                        class="bg-gradient-to-r from-green-50 to-green-100 text-green-700 px-4 py-2 rounded-lg hover:from-green-100 hover:to-green-200 smooth-transition flex items-center shadow-sm"
+                                        {% if not table_data %}disabled{% endif %}>
+                                    <i class="fas fa-download mr-2"></i>Export CSV
+                                </button>
+                                <button onclick="showQueryBuilder()" 
+                                        class="bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:from-gray-100 hover:to-gray-200 smooth-transition flex items-center shadow-sm">
+                                    <i class="fas fa-search mr-2"></i>Query
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column Types -->
+                    {% if columns %}
+                    <div class="px-6 py-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-gray-600 text-sm font-medium">Columns ({{ columns|length }})</p>
+                            <button onclick="toggleColumns()" class="text-blue-600 text-sm hover:text-blue-800">
+                                <i class="fas fa-eye mr-1"></i>Toggle
+                            </button>
+                        </div>
+                        <div id="columns-list" class="flex flex-wrap gap-2">
+                            {% for column in columns %}
+                            <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-white text-gray-800 border border-gray-200 shadow-sm">
+                                <i class="fas fa-tag mr-1.5 text-blue-500"></i>
+                                <span class="font-semibold">{{ column.column_name }}</span>
+                                <span class="ml-1.5 text-gray-500 text-xs bg-gray-100 px-2 py-0.5 rounded">
+                                    {{ column.data_type }}
+                                </span>
+                                {% if column.is_nullable == 'YES' %}
+                                <span class="ml-1 text-gray-400" title="Nullable">
+                                    <i class="fas fa-question"></i>
+                                </span>
+                                {% endif %}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Data Table -->
+                    <div class="overflow-x-auto custom-scrollbar">
+                        {% if table_data and columns %}
+                        <table class="min-w-full divide-y divide-gray-200" id="data-table">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    {% for column in columns %}
+                                    <th scope="col"
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 smooth-transition"
+                                        data-column="{{ loop.index0 }}">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <i class="fas fa-sort text-gray-400 mr-2"></i>
+                                                <span>{{ column.column_name }}</span>
+                                            </div>
+                                            <span class="text-gray-400 text-xs font-normal ml-2 bg-gray-100 px-2 py-1 rounded">
+                                                {{ column.data_type }}
+                                            </span>
+                                        </div>
+                                    </th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for row in table_data %}
+                                <tr class="table-row-hover smooth-transition hover:bg-blue-50 cursor-pointer" 
+                                    onclick="selectRow(this)"
+                                    data-row-index="{{ loop.index }}">
+                                    {% for column in columns %}
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                                        {% set cell_value = row[column.column_name] %}
+                                        {% if cell_value is none or cell_value == None %}
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-gray-100 text-gray-500">
+                                                <i class="fas fa-ban mr-1.5"></i>NULL
+                                            </span>
+                                        {% elif cell_value is string and cell_value|length > 50 %}
+                                            <div class="tooltip">
+                                                <span class="truncate max-w-xs inline-block bg-gray-50 px-3 py-1.5 rounded border border-gray-200">
+                                                    {{ cell_value[:50] }}...
+                                                </span>
+                                                <div class="tooltip-text">
+                                                    <div class="font-semibold mb-1">{{ column.column_name }}</div>
+                                                    <div class="text-gray-300">{{ cell_value }}</div>
+                                                </div>
+                                            </div>
+                                        {% elif cell_value is string %}
+                                            {% if column.data_type == 'jsonb' %}
+                                                <pre class="bg-gray-50 text-gray-700 px-3 py-1.5 rounded border border-gray-200 text-xs whitespace-pre-wrap max-w-xs overflow-x-auto">
+                                                    {{ cell_value }}
+                                                </pre>
+                                            {% else %}
+                                                <span class="bg-blue-50 text-blue-700 px-3 py-1.5 rounded border border-blue-200">
+                                                    {{ cell_value }}
+                                                </span>
+                                            {% endif %}
+                                        {% elif cell_value is number %}
+                                            <span class="bg-green-50 text-green-700 px-3 py-1.5 rounded border border-green-200 font-mono">
+                                                {{ cell_value }}
+                                            </span>
+                                        {% elif cell_value is boolean %}
+                                            <span class="{% if cell_value %}bg-green-50 text-green-700 border-green-200{% else %}bg-red-50 text-red-700 border-red-200{% endif %} px-3 py-1.5 rounded border">
+                                                <i class="fas fa-{% if cell_value %}check{% else %}times{% endif %} mr-1.5"></i>
+                                                {{ cell_value }}
+                                            </span>
+                                        {% else %}
+                                            <span class="bg-gray-50 text-gray-700 px-3 py-1.5 rounded border border-gray-200">
+                                                {{ cell_value }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% elif selected_table and not error %}
+                        <!-- Empty State -->
+                        <div class="text-center py-16">
+                            <div class="mx-auto w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                                <i class="fas fa-database text-gray-400 text-3xl"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-3">No Data Available</h3>
+                            <p class="text-gray-500 max-w-md mx-auto mb-8">
+                                The table <span class="font-semibold text-blue-600">"{{ selected_table }}"</span> exists but contains no data.
+                            </p>
+                            <button onclick="refreshData()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 smooth-transition">
+                                <i class="fas fa-redo mr-2"></i>Check Again
+                            </button>
+                        </div>
+                        {% elif not selected_table and not error %}
+                        <!-- No Table Selected -->
+                        <div class="text-center py-16">
+                            <div class="mx-auto w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center mb-6">
+                                <i class="fas fa-mouse-pointer text-blue-500 text-3xl"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-3">Select a Table</h3>
+                            <p class="text-gray-500 max-w-md mx-auto mb-8">
+                                Choose a table from the sidebar to view its data. You can see {{ total_tables }} available tables.
+                            </p>
+                            <div class="flex justify-center space-x-4">
+                                <button onclick="scrollToTables()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 smooth-transition">
+                                    <i class="fas fa-arrow-right mr-2"></i>Browse Tables
+                                </button>
+                                <button onclick="refreshData()" class="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 smooth-transition">
+                                    <i class="fas fa-sync-alt mr-2"></i>Refresh List
+                                </button>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Pagination/Info -->
+                    {% if table_data and columns %}
+                    <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between text-sm text-gray-700">
+                            <div class="mb-3 md:mb-0">
+                                <p>
+                                    Showing <span class="font-semibold text-blue-600">{{ "{:,}".format(table_data|length) }}</span> 
+                                    of <span class="font-semibold text-green-600">{{ "{:,}".format(row_count) }}</span> records
+                                    {% if table_data|length < row_count %}
+                                    <span class="text-gray-500 ml-2">
+                                        ({{ "{:.1%}".format(table_data|length / row_count) }} of total)
+                                    </span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div class="text-gray-600">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    <span id="last-updated">Just now</span>
+                                </div>
+                                <button onclick="loadMoreData()" 
+                                        class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-5 py-2 rounded-lg hover:from-blue-600 hover:to-blue-700 smooth-transition flex items-center shadow-md">
+                                    <i class="fas fa-chevron-down mr-2"></i>Load More Rows
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 border-t border-gray-200 bg-white">
+                <div class="flex flex-col md:flex-row md:items-center justify-between text-sm text-gray-500">
+                    <div class="mb-2 md:mb-0">
+                        <p>
+                            <i class="fas fa-database mr-1"></i>
+                            PostgreSQL Database Dashboard • Running on port 8001
+                        </p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span id="memory-usage" class="text-xs bg-gray-100 px-2 py-1 rounded">
+                            Loading...
+                        </span>
+                        <span id="response-time" class="text-xs bg-gray-100 px-2 py-1 rounded">
+                            Response: --
+                        </span>
+                        <button onclick="showServerInfo()" class="text-blue-600 hover:text-blue-800 text-xs">
+                            <i class="fas fa-server mr-1"></i>Server Info
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Server Info Modal -->
+    <div id="server-info-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-gray-800">
+                        <i class="fas fa-server mr-3 text-blue-500"></i>
+                        Server Information
+                    </h3>
+                    <button onclick="closeServerInfo()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-globe text-blue-600 mr-3"></i>
+                            <span class="font-semibold">Server URL</span>
+                        </div>
+                        <code class="text-sm bg-white px-3 py-2 rounded border border-blue-200 block mt-2">
+                            http://localhost:8001
+                        </code>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-database text-green-600 mr-3"></i>
+                            <span class="font-semibold">Database</span>
+                        </div>
+                        <p class="text-sm mt-2">PostgreSQL • Port 5432</p>
+                        <p class="text-sm text-gray-600">Connected to: retail_qtaf</p>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-table text-purple-600 mr-3"></i>
+                            <span class="font-semibold">Tables Loaded</span>
+                        </div>
+                        <p class="text-2xl font-bold text-purple-700 mt-2">{{ total_tables }}</p>
+                    </div>
+                </div>
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <button onclick="closeServerInfo()" 
+                            class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 smooth-transition">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let sortDirection = {};
+        let selectedRows = new Set();
+        let lastUpdateTime = new Date();
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Database Dashboard initialized');
+            console.log('🌐 Server running on port 8001');
+            
+            // Hide loading after 1 second
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('main-container').style.display = 'flex';
+                updateLastUpdated();
+                startPerformanceMonitor();
+
+                // Add highlight animation to stats cards
+                document.querySelectorAll('.bg-white.rounded-xl').forEach(card => {
+                    card.classList.add('highlight');
+                });
+
+                // Update memory usage
+                updateMemoryUsage();
+
+                // Attach click listeners to sortable table headers
+                document.querySelectorAll('th[data-column]').forEach(th => {
+                    th.addEventListener('click', () => {
+                        const columnIndex = parseInt(th.getAttribute('data-column'));
+                        sortColumn(columnIndex);
+                    });
+                });
+            }, 1000);
+            
+            // Update last updated time every minute
+            setInterval(updateLastUpdated, 60000);
+            
+            // Update performance metrics every 5 seconds
+            setInterval(updatePerformanceMetrics, 5000);
+        });
+        
+        // Show/hide loading
+        function showLoading(message = 'Loading...') {
+            const loading = document.getElementById('loading');
+            loading.querySelector('p:nth-child(2)').textContent = message;
+            loading.style.display = 'flex';
+            document.getElementById('main-container').style.display = 'none';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('main-container').style.display = 'flex';
+        }
+        
+        // Refresh data
+        function refreshData() {
+            showLoading('Refreshing data...');
+            window.location.reload();
+        }
+        
+        // Export to CSV
+        function exportToCSV() {
+            showLoading('Preparing CSV export...');
+            
+            const table = document.getElementById('data-table');
+            if (!table) {
+                alert('No data available to export');
+                hideLoading();
+                return;
+            }
+            
+            const rows = table.querySelectorAll('tr');
+            const csv = [];
+            
+            // Add headers
+            const headerRow = [];
+            table.querySelectorAll('th').forEach(th => {
+                let text = th.textContent.trim();
+                text = text.replace(/\(.*?\)/g, '').trim();
+                headerRow.push(`"${text}"`);
+            });
+            csv.push(headerRow.join(','));
+            
+            // Add data rows
+            table.querySelectorAll('tbody tr').forEach(row => {
+                const rowData = [];
+                row.querySelectorAll('td').forEach(td => {
+                    let text = td.textContent.trim();
+                    text = text.replace('NULL', '').trim();
+                    text = text.replace('...', '');
+                    rowData.push(`"${text}"`);
+                });
+                csv.push(rowData.join(','));
+            });
+            
+            const csvContent = csv.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `{{ selected_table or 'database_export' }}_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            hideLoading();
+            
+            // Show success notification
+            showNotification('CSV exported successfully!', 'success');
+        }
+        
+        // Sort table column
+        function sortColumn(columnIndex) {
+            const table = document.getElementById('data-table');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            // Initialize sort direction for this column
+            if (!sortDirection[columnIndex]) {
+                sortDirection[columnIndex] = 'asc';
+            }
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                const aCell = a.querySelectorAll('td')[columnIndex];
+                const bCell = b.querySelectorAll('td')[columnIndex];
+                
+                let aValue = aCell.textContent.trim();
+                let bValue = bCell.textContent.trim();
+                
+                // Remove NULL indicators
+                aValue = aValue.replace('NULL', '').trim();
+                bValue = bValue.replace('NULL', '').trim();
+                
+                // Try to parse as numbers
+                const aNum = parseFloat(aValue);
+                const bNum = parseFloat(bValue);
+                
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                    return sortDirection[columnIndex] === 'asc' ? aNum - bNum : bNum - aNum;
+                }
+                
+                // Compare as strings
+                return sortDirection[columnIndex] === 'asc' 
+                    ? aValue.localeCompare(bValue)
+                    : bValue.localeCompare(aValue);
+            });
+            
+            // Update sort direction
+            sortDirection[columnIndex] = sortDirection[columnIndex] === 'asc' ? 'desc' : 'asc';
+            
+            // Update table header indicator
+            table.querySelectorAll('th').forEach((th, idx) => {
+                const icon = th.querySelector('i.fa-sort');
+                if (icon) {
+                    icon.className = idx === columnIndex 
+                        ? `fas fa-sort-${sortDirection[columnIndex] === 'asc' ? 'up' : 'down'} text-blue-600 mr-2`
+                        : 'fas fa-sort text-gray-400 mr-2';
+                }
+            });
+            
+            // Re-append rows in sorted order
+            rows.forEach(row => tbody.appendChild(row));
+            
+            showNotification(`Sorted by column ${columnIndex + 1} (${sortDirection[columnIndex]})`, 'info');
+        }
+        
+        // Select table row
+        function selectRow(rowElement) {
+            const rowIndex = rowElement.getAttribute('data-row-index');
+            
+            if (selectedRows.has(rowIndex)) {
+                selectedRows.delete(rowIndex);
+                rowElement.classList.remove('bg-blue-100', 'border-l-4', 'border-blue-500');
+                rowElement.classList.add('hover:bg-blue-50');
+            } else {
+                selectedRows.add(rowIndex);
+                rowElement.classList.add('bg-blue-100', 'border-l-4', 'border-blue-500');
+                rowElement.classList.remove('hover:bg-blue-50');
+            }
+            
+            // Update selection count in footer
+            updateSelectionCount();
+        }
+        
+        // Update selection count
+        function updateSelectionCount() {
+            const countElement = document.getElementById('selection-count');
+            if (!countElement) {
+                // Create element if it doesn't exist
+                const footer = document.querySelector('.bg-gradient-to-r.from-gray-50');
+                if (footer && selectedRows.size > 0) {
+                    const countSpan = document.createElement('span');
+                    countSpan.id = 'selection-count';
+                    countSpan.className = 'bg-blue-600 text-white px-3 py-1 rounded text-sm ml-4';
+                    countSpan.textContent = `${selectedRows.size} selected`;
+                    footer.querySelector('div:first-child').appendChild(countSpan);
+                }
+            } else {
+                if (selectedRows.size > 0) {
+                    countElement.textContent = `${selectedRows.size} selected`;
+                } else {
+                    countElement.remove();
+                }
+            }
+        }
+        
+        // Load more data
+        function loadMoreData() {
+            showNotification('Loading more data...', 'info');
+            // In a real implementation, this would make an API call for pagination
+            setTimeout(() => {
+                showNotification('Pagination would load more rows here', 'info');
+            }, 500);
+        }
+        
+        // Toggle columns visibility
+        function toggleColumns() {
+            const columnsList = document.getElementById('columns-list');
+            if (columnsList.style.display === 'none') {
+                columnsList.style.display = 'flex';
+                showNotification('Columns shown', 'info');
+            } else {
+                columnsList.style.display = 'none';
+                showNotification('Columns hidden', 'info');
+            }
+        }
+        
+        // Scroll to tables in sidebar
+        function scrollToTables() {
+            const sidebar = document.querySelector('.overflow-y-auto');
+            if (sidebar) {
+                sidebar.scrollTop = 0;
+                showNotification('Scrolled to table list', 'info');
+            }
+        }
+        
+        // Show server info modal
+        function showServerInfo() {
+            document.getElementById('server-info-modal').classList.remove('hidden');
+            document.getElementById('server-info-modal').classList.add('flex');
+        }
+        
+        function closeServerInfo() {
+            document.getElementById('server-info-modal').classList.add('hidden');
+            document.getElementById('server-info-modal').classList.remove('flex');
+        }
+        
+        // Show notification
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border-l-4 ${type === 'success' ? 'bg-green-50 border-green-500 text-green-800' : type === 'error' ? 'bg-red-50 border-red-500 text-red-800' : 'bg-blue-50 border-blue-500 text-blue-800'}`;
+            
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-3 text-lg"></i>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 3000);
+        }
+        
+        // Update last updated time
+        function updateLastUpdated() {
+            const now = new Date();
+            lastUpdateTime = now;
+            const element = document.getElementById('last-updated');
+            if (element) {
+                const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                element.textContent = `Updated at ${timeString}`;
+            }
+        }
+        
+        // Update memory usage
+        function updateMemoryUsage() {
+            if (performance.memory) {
+                const usedMB = Math.round(performance.memory.usedJSHeapSize / 1048576);
+                const totalMB = Math.round(performance.memory.totalJSHeapSize / 1048576);
+                document.getElementById('memory-usage').textContent = `RAM: ${usedMB}MB / ${totalMB}MB`;
+            }
+        }
+        
+        // Start performance monitor
+        function startPerformanceMonitor() {
+            const startTime = performance.now();
+            
+            // Calculate initial load time
+            window.addEventListener('load', () => {
+                const loadTime = performance.now() - startTime;
+                document.getElementById('response-time').textContent = `Load: ${Math.round(loadTime)}ms`;
+            });
+        }
+        
+        // Update performance metrics
+        function updatePerformanceMetrics() {
+            updateMemoryUsage();
+            
+            // Simulate response time for demo
+            const responseTime = 50 + Math.random() * 100;
+            document.getElementById('response-time').textContent = `Response: ${Math.round(responseTime)}ms`;
+        }
+        
+        // Retry connection
+        function retryConnection() {
+            showLoading('Reconnecting to database...');
+            setTimeout(() => {
+                refreshData();
+            }, 1000);
+        }
+        
+        // Hide error
+        function hideError() {
+            const errorElement = document.querySelector('.bg-gradient-to-r.from-red-50');
+            if (errorElement) {
+                errorElement.remove();
+            }
+        }
+        
+        // Show connection help
+        function showConnectionHelp() {
+            showNotification('Check database credentials and network connection', 'info');
+        }
+        
+        // Show query builder (placeholder)
+        function showQueryBuilder() {
+            showNotification('Query builder would open here', 'info');
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + R to refresh
+            if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                e.preventDefault();
+                refreshData();
+            }
+            // Ctrl/Cmd + E to export
+            if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+                e.preventDefault();
+                exportToCSV();
+            }
+            // Escape to close modals
+            if (e.key === 'Escape') {
+                closeServerInfo();
+            }
+            // Ctrl/Cmd + F to search (placeholder)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                showNotification('Search functionality would open here', 'info');
+            }
+        });
+        
+        // Make tables in sidebar clickable with loading indication
+        document.querySelectorAll('.sidebar a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                if (this.href.includes('/table/')) {
+                    showLoading(`Loading ${this.querySelector('span').textContent}...`);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
