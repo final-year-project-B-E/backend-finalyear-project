@@ -1,36 +1,71 @@
+import hashlib
+import json
 import os
 import uuid
-import hashlib
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from pymongo import MongoClient, ASCENDING
+from pymongo import ASCENDING, MongoClient
 from pymongo.collection import Collection
 
 
 class Database:
     def __init__(self):
-        username = os.getenv("MONGODB_USERNAME", "<db_username>")
-        password = os.getenv("MONGODB_PASSWORD", "<db_password>")
+        self.mongo_available = False
+        self.connection_error: Optional[str] = None
+        self._fallback_products = self._load_fallback_products()
+
+        username = os.getenv("MONGODB_USERNAME", "")
+        password = os.getenv("MONGODB_PASSWORD", "")
         uri_template = os.getenv(
             "MONGODB_URI",
             "mongodb+srv://<db_username>:<db_password>@cluster0.xlq8iwb.mongodb.net/abfrl?appName=Cluster0",
         )
         uri = uri_template.replace("<db_username>", username).replace("<db_password>", password)
-        self.client = MongoClient(uri)
-        self.db = self.client[os.getenv("MONGODB_DB", "abfrl")]
 
-        self.users: Collection = self.db["users"]
-        self.products: Collection = self.db["products"]
-        self.carts: Collection = self.db["carts"]
-        self.orders: Collection = self.db["orders"]
-        self.order_items: Collection = self.db["order_items"]
-        self.chat_sessions: Collection = self.db["chat_sessions"]
-        self.chat_messages: Collection = self.db["chat_messages"]
-        self.auth_tokens: Collection = self.db["auth_tokens"]
+        if "<db_username>" in uri or "<db_password>" in uri:
+            self.connection_error = "MongoDB credentials are not configured. Set MONGODB_URI or MONGODB_USERNAME/MONGODB_PASSWORD."
+            return
 
-        self._ensure_indexes()
-        self._seed_products_if_empty()
+        try:
+            self.client = MongoClient(
+                uri,
+                serverSelectionTimeoutMS=int(os.getenv("MONGODB_SERVER_SELECTION_TIMEOUT_MS", "6000")),
+                connectTimeoutMS=int(os.getenv("MONGODB_CONNECT_TIMEOUT_MS", "6000")),
+                socketTimeoutMS=int(os.getenv("MONGODB_SOCKET_TIMEOUT_MS", "10000")),
+                tlsAllowInvalidCertificates=os.getenv("MONGODB_TLS_ALLOW_INVALID_CERTS", "false").lower() == "true",
+            )
+            self.client.admin.command("ping")
+
+            self.db = self.client[os.getenv("MONGODB_DB", "abfrl")]
+            self.users: Collection = self.db["users"]
+            self.products: Collection = self.db["products"]
+            self.carts: Collection = self.db["carts"]
+            self.orders: Collection = self.db["orders"]
+            self.order_items: Collection = self.db["order_items"]
+            self.chat_sessions: Collection = self.db["chat_sessions"]
+            self.chat_messages: Collection = self.db["chat_messages"]
+            self.auth_tokens: Collection = self.db["auth_tokens"]
+
+            self._ensure_indexes()
+            self._seed_products_if_empty()
+            self.mongo_available = True
+        except Exception as error:
+            self.connection_error = f"MongoDB connection failed: {error}"
+
+    def _load_fallback_products(self) -> List[Dict[str, Any]]:
+        try:
+            data_file = Path(__file__).resolve().parent / "data" / "products.json"
+            if data_file.exists():
+                return json.loads(data_file.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+        return []
+
+    def _ensure_connection(self):
+        if not self.mongo_available:
+            raise RuntimeError(self.connection_error or "MongoDB is unavailable")
 
     def _ensure_indexes(self):
         self.users.create_index([("id", ASCENDING)], unique=True)
@@ -43,20 +78,8 @@ class Database:
         self.auth_tokens.create_index([("token", ASCENDING)], unique=True)
 
     def _seed_products_if_empty(self):
-        if self.products.count_documents({}) > 0:
-            return
-        try:
-            import json
-            from pathlib import Path
-
-            data_file = Path(__file__).resolve().parent / "data" / "products.json"
-            if data_file.exists():
-                with open(data_file, "r", encoding="utf-8") as f:
-                    products = json.load(f)
-                if products:
-                    self.products.insert_many(products)
-        except Exception:
-            pass
+        if self.products.count_documents({}) == 0 and self._fallback_products:
+            self.products.insert_many(self._fallback_products)
 
     def _next_id(self, collection: Collection) -> int:
         doc = collection.find_one(sort=[("id", -1)])
@@ -71,8 +94,12 @@ class Database:
     def _hash_password(self, password: str) -> str:
         return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
+    def status(self) -> Dict[str, Any]:
+        return {"mongo_available": self.mongo_available, "connection_error": self.connection_error}
+
     # Auth & users
     def create_user(self, email: str, password: str, first_name: str, last_name: str) -> Dict[str, Any]:
+        self._ensure_connection()
         now = datetime.utcnow().isoformat()
         user = {
             "id": self._next_id(self.users),
@@ -96,6 +123,7 @@ class Database:
         return self._sanitize_user(user)
 
     def authenticate_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
+        self._ensure_connection()
         user = self.users.find_one({"email": email.lower()})
         if not user:
             return None
@@ -104,21 +132,20 @@ class Database:
         return self._clean(user)
 
     def create_auth_token(self, user_id: int) -> str:
+        self._ensure_connection()
         token = f"tok_{uuid.uuid4().hex}"
-        self.auth_tokens.insert_one({
-            "token": token,
-            "user_id": user_id,
-            "created_at": datetime.utcnow().isoformat(),
-        })
+        self.auth_tokens.insert_one({"token": token, "user_id": user_id, "created_at": datetime.utcnow().isoformat()})
         return token
 
     def get_user_by_token(self, token: str) -> Optional[Dict[str, Any]]:
+        self._ensure_connection()
         mapping = self.auth_tokens.find_one({"token": token})
         if not mapping:
             return None
         return self.get_user(mapping["user_id"])
 
     def delete_token(self, token: str):
+        self._ensure_connection()
         self.auth_tokens.delete_one({"token": token})
 
     def _sanitize_user(self, user: Dict[str, Any]) -> Dict[str, Any]:
@@ -127,59 +154,66 @@ class Database:
         return clean
 
     def get_user(self, user_id: int) -> Optional[Dict[str, Any]]:
+        self._ensure_connection()
         user = self.users.find_one({"id": user_id})
         if not user:
             return None
         return self._sanitize_user(user)
 
     def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        self._ensure_connection()
         user = self.users.find_one({"email": email.lower()})
         if not user:
             return None
         return self._sanitize_user(user)
 
     def update_user_loyalty(self, user_id: int, points: int):
-        self.users.update_one(
-            {"id": user_id},
-            {"$inc": {"loyalty_score": points}, "$set": {"updated_at": datetime.utcnow().isoformat()}},
-        )
+        self._ensure_connection()
+        self.users.update_one({"id": user_id}, {"$inc": {"loyalty_score": points}, "$set": {"updated_at": datetime.utcnow().isoformat()}})
 
     # Products
     def get_product(self, product_id: int) -> Optional[Dict[str, Any]]:
-        return self._clean(self.products.find_one({"id": product_id}))
+        if self.mongo_available:
+            return self._clean(self.products.find_one({"id": product_id}))
+        return next((p for p in self._fallback_products if p.get("id") == product_id), None)
 
-    def search_products(
-        self,
-        category: Optional[str] = None,
-        occasion: Optional[str] = None,
-        min_price: Optional[float] = None,
-        max_price: Optional[float] = None,
-    ) -> List[Dict[str, Any]]:
-        query: Dict[str, Any] = {}
+    def search_products(self, category: Optional[str] = None, occasion: Optional[str] = None, min_price: Optional[float] = None, max_price: Optional[float] = None) -> List[Dict[str, Any]]:
+        if self.mongo_available:
+            query: Dict[str, Any] = {}
+            if category:
+                query["dress_category"] = category
+            if occasion:
+                query["occasion"] = occasion
+            if min_price is not None or max_price is not None:
+                query["price"] = {}
+                if min_price is not None:
+                    query["price"]["$gte"] = min_price
+                if max_price is not None:
+                    query["price"]["$lte"] = max_price
+            return [self._clean(d) for d in self.products.find(query)]
+
+        result = list(self._fallback_products)
         if category:
-            query["dress_category"] = category
+            result = [p for p in result if p.get("dress_category") == category]
         if occasion:
-            query["occasion"] = occasion
-        if min_price is not None or max_price is not None:
-            query["price"] = {}
-            if min_price is not None:
-                query["price"]["$gte"] = min_price
-            if max_price is not None:
-                query["price"]["$lte"] = max_price
-        return [self._clean(d) for d in self.products.find(query)]
+            result = [p for p in result if p.get("occasion") == occasion]
+        if min_price is not None:
+            result = [p for p in result if float(p.get("price", 0)) >= min_price]
+        if max_price is not None:
+            result = [p for p in result if float(p.get("price", 0)) <= max_price]
+        return result
 
     def update_stock(self, product_id: int, quantity: int):
+        self._ensure_connection()
         product = self.get_product(product_id)
         if not product:
             return
         new_stock = max(0, int(product.get("stock", 0)) - quantity)
-        self.products.update_one(
-            {"id": product_id},
-            {"$set": {"stock": new_stock, "updated_at": datetime.utcnow().isoformat()}},
-        )
+        self.products.update_one({"id": product_id}, {"$set": {"stock": new_stock, "updated_at": datetime.utcnow().isoformat()}})
 
     # Cart
     def get_user_cart(self, user_id: int) -> List[Dict[str, Any]]:
+        self._ensure_connection()
         items = [self._clean(d) for d in self.carts.find({"user_id": user_id})]
         output = []
         for item in items:
@@ -189,26 +223,20 @@ class Database:
         return output
 
     def add_to_cart(self, user_id: int, product_id: int, quantity: int = 1):
+        self._ensure_connection()
         item = self.carts.find_one({"user_id": user_id, "product_id": product_id})
         if item:
-            self.carts.update_one(
-                {"id": item["id"]},
-                {"$inc": {"quantity": quantity}, "$set": {"added_at": datetime.utcnow().isoformat()}},
-            )
+            self.carts.update_one({"id": item["id"]}, {"$inc": {"quantity": quantity}, "$set": {"added_at": datetime.utcnow().isoformat()}})
             return
-        self.carts.insert_one({
-            "id": self._next_id(self.carts),
-            "user_id": user_id,
-            "product_id": product_id,
-            "quantity": quantity,
-            "added_at": datetime.utcnow().isoformat(),
-        })
+        self.carts.insert_one({"id": self._next_id(self.carts), "user_id": user_id, "product_id": product_id, "quantity": quantity, "added_at": datetime.utcnow().isoformat()})
 
     def clear_user_cart(self, user_id: int):
+        self._ensure_connection()
         self.carts.delete_many({"user_id": user_id})
 
     # Orders
     def create_order(self, user_id: int, cart_items: List[Dict[str, Any]], shipping_address: str, billing_address: str, payment_method: str) -> Dict[str, Any]:
+        self._ensure_connection()
         subtotal = sum(item["product"]["price"] * item["quantity"] for item in cart_items)
         tax = subtotal * 0.08
         shipping = 9.99 if subtotal < 100 else 0
@@ -253,6 +281,7 @@ class Database:
         return order
 
     def get_user_orders(self, user_id: int) -> List[Dict[str, Any]]:
+        self._ensure_connection()
         orders = [self._clean(o) for o in self.orders.find({"user_id": user_id})]
         output = []
         for order in orders:
@@ -262,6 +291,7 @@ class Database:
 
     # Chat
     def create_chat_session(self, user_id: int, channel: str = "web") -> str:
+        self._ensure_connection()
         session_id = f"sess_{uuid.uuid4().hex[:12]}"
         self.chat_sessions.insert_one({
             "id": self._next_id(self.chat_sessions),
@@ -277,11 +307,13 @@ class Database:
         return session_id
 
     def get_or_create_chat_session(self, user_id: int, session_id: Optional[str] = None, channel: str = "web") -> str:
+        self._ensure_connection()
         if session_id and self.chat_sessions.find_one({"session_id": session_id}):
             return session_id
         return self.create_chat_session(user_id, channel)
 
     def add_chat_message(self, session_id: str, role: str, content: str, agent_type: Optional[str] = None):
+        self._ensure_connection()
         self.chat_messages.insert_one({
             "id": self._next_id(self.chat_messages),
             "session_id": session_id,
@@ -293,6 +325,7 @@ class Database:
         })
 
     def get_user_recent_messages(self, user_id: int, limit: int = 12, exclude_session_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        self._ensure_connection()
         sessions = [self._clean(s) for s in self.chat_sessions.find({"user_id": user_id})]
         ids = {s["session_id"] for s in sessions}
         if exclude_session_id:
@@ -302,6 +335,7 @@ class Database:
         return list(reversed(msgs))
 
     def get_chat_history(self, session_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+        self._ensure_connection()
         msgs = [self._clean(m) for m in self.chat_messages.find({"session_id": session_id}).sort("id", -1).limit(limit)]
         return list(reversed(msgs))
 
