@@ -52,7 +52,8 @@ class Orchestrator:
                 user_context = {
                     "name": f"{user['first_name']} {user['last_name']}",
                     "loyalty_score": user['loyalty_score'],
-                    "past_orders": self._get_user_orders(request.user_id)
+                    "past_orders": db.get_user_orders(request.user_id),
+                    "user_id": request.user_id
                 }
         
         # Get chat history
@@ -149,19 +150,3 @@ class Orchestrator:
         elif "checkout" in response.lower():
             return True, "checkout", {"user_id": user_context.get("user_id")}
         return False, None, None
-    
-    def _get_user_orders(self, user_id: int) -> List[Dict]:
-        """Get user's past orders"""
-        orders = []
-        for order in db.orders:
-            if order["user_id"] == user_id:
-                # Get order items
-                items = []
-                for item in db.order_items:
-                    if item["order_id"] == order["id"]:
-                        items.append(item)
-                orders.append({
-                    **order,
-                    "items": items
-                })
-        return orders
