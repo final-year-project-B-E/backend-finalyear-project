@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Filter, X, Package } from 'lucide-react';
 import { Layout } from '@/components/layout';
@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { mockProducts } from '@/data/mockData';
+import { api } from '@/lib/api';
+import { Product } from '@/types';
 
 const Products = () => {
   const [searchParams] = useSearchParams();
@@ -21,6 +23,11 @@ const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryParam);
   const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
+  const [products, setProducts] = useState<Product[]>(mockProducts);
+
+  useEffect(() => {
+    api.products().then((res) => setProducts(res.products)).catch(() => undefined);
+  }, []);
 
   // Define categories for the frontend
   const categories = [
@@ -72,7 +79,7 @@ const Products = () => {
   };
 
   const filteredProducts = useMemo(() => {
-    let result = [...mockProducts];
+    let result = [...products];
     
     // Search filter
     if (searchQuery) {
@@ -124,7 +131,7 @@ const Products = () => {
     }
     
     return result;
-  }, [searchQuery, selectedCategory, selectedOccasions, priceRange, sortBy]);
+  }, [products, searchQuery, selectedCategory, selectedOccasions, priceRange, sortBy]);
 
   const getCategoryTitle = () => {
     if (searchQuery) return `Search: "${searchQuery}"`;

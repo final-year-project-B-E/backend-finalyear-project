@@ -6,6 +6,8 @@ import { ProductGrid } from '@/components/product';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { mockProducts } from '@/data/mockData';
+import { Product } from '@/types';
+import { api } from '@/lib/api';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { toast } from '@/hooks/use-toast';
@@ -19,17 +21,20 @@ const ProductDetail = () => {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [products, setProducts] = useState<Product[]>(mockProducts);
 
-  const product = useMemo(() => {
-    return mockProducts.find(p => p.id === Number(id));
-  }, [id]);
+  useEffect(() => {
+    api.products().then((res) => setProducts(res.products)).catch(() => undefined);
+  }, []);
+
+  const product = useMemo(() => products.find(p => p.id === Number(id)), [id, products]);
 
   const relatedProducts = useMemo(() => {
     if (!product) return [];
-    return mockProducts
+    return products
       .filter(p => p.id !== product.id && p.dress_category === product.dress_category)
       .slice(0, 4);
-  }, [product]);
+  }, [product, products]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -59,7 +64,7 @@ const ProductDetail = () => {
       toast({ title: "Please select a color", variant: "destructive" }); 
       return; 
     }
-    addItem(product, quantity, selectedSize, selectedColor);
+    void addItem(product, quantity, selectedSize, selectedColor);
     toast({ title: "Added to bag", description: `${product.product_name} has been added to your shopping bag.` });
   };
 
