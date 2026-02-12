@@ -11,6 +11,9 @@ from agents.support_agent import SupportAgent
 from database import db
 from schemas import SalesRequest, SalesResponse
 
+MAX_SPECIALIST_AGENTS = 2
+SPECIALIST_AGENT_TIMEOUT_SECONDS = 1.8
+
 
 class Orchestrator:
     def __init__(self):
@@ -56,7 +59,8 @@ class Orchestrator:
         intents = self._detect_intents(request.message)
         tool_outputs = await self._run_agentic_steps(intents, request.message, user_context)
 
-        response_text = self.sales_agent.compose_response(
+        response_text = await asyncio.to_thread(
+            self.sales_agent.compose_response,
             user_message=request.message,
             history=chat_history,
             user_context=user_context,
@@ -121,6 +125,7 @@ class Orchestrator:
 
         ranked_colors = sorted(color_hits.items(), key=lambda item: item[1], reverse=True)
         return {"colors": [color for color, _ in ranked_colors[:3]]}
+
     def _detect_intents(self, message: str) -> List[str]:
         message_lower = message.lower()
         intents: List[str] = []
@@ -149,16 +154,24 @@ class Orchestrator:
         message: str,
         user_context: Dict[str, Any],
     ) -> List[Dict[str, str]]:
-        intents_to_call = [intent for intent in intents if intent != "sales"]
+        intents_to_call = [intent for intent in intents if intent != "sales"][:MAX_SPECIALIST_AGENTS]
         if not intents_to_call:
             return []
 
-        tasks = [self._delegate_to_agent(intent, message, user_context) for intent in intents_to_call]
+        tasks = [
+            asyncio.wait_for(
+                self._delegate_to_agent(intent, message, user_context),
+                timeout=SPECIALIST_AGENT_TIMEOUT_SECONDS,
+            )
+            for intent in intents_to_call
+        ]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         outputs: List[Dict[str, str]] = []
         for intent, result in zip(intents_to_call, results):
             if isinstance(result, Exception):
+                if isinstance(result, asyncio.TimeoutError):
+                    continue
                 outputs.append({"source": f"{intent}_agent", "content": f"{intent} agent error: {str(result)}"})
                 continue
             if result:

@@ -1,5 +1,7 @@
 import os
 import re
+import time
+from threading import Lock
 from typing import List, Dict, Any, Optional
 
 import requests
@@ -18,6 +20,10 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 class SalesAgent:
     def __init__(self):
         self.system_prompt = self._create_system_prompt()
+        self.http = requests.Session()
+        self._response_cache: Dict[str, tuple[float, str]] = {}
+        self._cache_lock = Lock()
+        self._cache_ttl_seconds = 120
 
     def _create_system_prompt(self) -> str:
         return """You are Clara, an elite omnichannel fashion sales strategist.
@@ -83,6 +89,10 @@ Response quality bar:
         prompt = self._build_prompt(user_context, channel, tool_outputs, rag_context)
         messages = [{"role": "system", "content": prompt}] + history[-8:] + [{"role": "user", "content": user_message}]
 
+        quick_response = self._fast_response_if_possible(user_message, rag_context, user_context)
+        if quick_response:
+            return quick_response
+
         llm_reply = self._call_openrouter(messages)
         if llm_reply:
             return llm_reply
@@ -134,8 +144,13 @@ Response quality bar:
         if not OPENROUTER_API_KEY:
             return ""
 
+        cache_key = self._messages_cache_key(messages)
+        cached = self._get_cached_response(cache_key)
+        if cached:
+            return cached
+
         try:
-            response = requests.post(
+            response = self.http.post(
                 OPENROUTER_URL,
                 headers={
                     "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -147,9 +162,9 @@ Response quality bar:
                     "model": MODEL,
                     "messages": messages,
                     "temperature": 0.25,
-                    "max_tokens": 500,
+                    "max_tokens": 420,
                 },
-                timeout=18,
+                timeout=(2, 10),
             )
             if response.status_code != 200:
                 return ""
@@ -158,9 +173,45 @@ Response quality bar:
             choices = data.get("choices", [])
             if not choices:
                 return ""
-            return (choices[0].get("message", {}).get("content") or "").strip()
+            content = (choices[0].get("message", {}).get("content") or "").strip()
+            if content:
+                self._set_cached_response(cache_key, content)
+            return content
         except Exception:
             return ""
+
+
+    def _messages_cache_key(self, messages: List[Dict[str, str]]) -> str:
+        flattened = "|".join(f"{msg.get('role','')}::{msg.get('content','')[:500]}" for msg in messages)
+        return f"{MODEL}:{hash(flattened)}"
+
+    def _get_cached_response(self, key: str) -> str:
+        with self._cache_lock:
+            cached = self._response_cache.get(key)
+            if not cached:
+                return ""
+            created_at, value = cached
+            if time.time() - created_at > self._cache_ttl_seconds:
+                self._response_cache.pop(key, None)
+                return ""
+            return value
+
+    def _set_cached_response(self, key: str, value: str) -> None:
+        with self._cache_lock:
+            self._response_cache[key] = (time.time(), value)
+
+    def _fast_response_if_possible(
+        self,
+        user_message: str,
+        rag_context: Dict[str, Any],
+        user_context: Dict[str, Any],
+    ) -> str:
+        intent = rag_context.get("intent")
+        if intent in {"inventory_check", "purchase", "fulfillment"}:
+            return self._rule_based_response(user_message, user_context, rag_context)
+        if len(user_message.strip()) <= 10:
+            return self._rule_based_response(user_message, user_context, rag_context)
+        return ""
 
     def _build_rag_context(self, user_message: str, user_context: Dict[str, Any]) -> Dict[str, Any]:
         preferences = self._extract_preferences(user_message, user_context)
