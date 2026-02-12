@@ -273,6 +273,26 @@ class Database:
             self.chat_messages.append(new_message)
             self._persist("chat_messages")
     
+
+    def get_user_recent_messages(self, user_id: int, limit: int = 12, exclude_session_id: Optional[str] = None) -> List[Dict]:
+        """Get recent messages for a user across sessions/channels for cross-channel memory."""
+        session_ids = {
+            session["session_id"]
+            for session in self.chat_sessions
+            if session.get("user_id") == user_id and session.get("session_id")
+        }
+        if exclude_session_id:
+            session_ids.discard(exclude_session_id)
+
+        recent = []
+        for msg in reversed(self.chat_messages):
+            if msg.get("session_id") in session_ids:
+                recent.append(msg)
+                if len(recent) >= limit:
+                    break
+
+        return list(reversed(recent))
+
     def get_chat_history(self, session_id: str, limit: int = 10) -> List[Dict]:
         messages = []
         for msg in reversed(self.chat_messages):
