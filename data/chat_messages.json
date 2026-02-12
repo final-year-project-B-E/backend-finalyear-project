@@ -714,5 +714,311 @@
     "content": "I apologize for the oversight earlier, John. Let me check the availability of red dresses in size medium for you.\n\nHere are the options available in size medium:\n\n1. **Elegant Evening Gown**\n   - Price: $299.99\n   - Category: Evening Gown\n   - Occasion: Formal\n   - Available in: Burgundy (a deep red shade)\n   - \u2705 In stock (5 available in medium)\n\n2. **Summer Floral Dress**\n   - Price: $89.99\n   - Category: Summer Dress\n   - Occasion: Casual\n   - Available in: Red Floral Print\n   - \u2705 In stock (12 available in medium)\n\nUnfortunately, the Professional Blazer Dress is not available in red. However, I can suggest a few more options in red for size medium:\n\n3. **Classic Red Wrap Dress**\n   - Price: $129.99\n   - Category: Day-to-Evening Dress\n   - Occasion: Versatile (work or casual outings)\n   - Available in: Classic Red\n   - \u2705 In stock (8 available in medium)\n\n4. **Off-the-Shoulder Red Dress**\n   - Price: $149.99\n   - Category: Party Dress\n   - Occasion: Semi-formal events or parties\n   - Available in: Vibrant Red\n   - \u2705 In stock (6 available in medium)\n\nWould you like to:\n1. See more details or images of any of these dresses?\n2. Check out complementary accessories like shoes or jewelry?\n3. Add any of these to your cart for a closer look?",
     "metadata": {},
     "created_at": "2026-01-17T15:14:12.283840"
+  },
+  {
+    "id": 79,
+    "session_id": "sess_f251f1d0fe3f",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hi",
+    "metadata": {},
+    "created_at": "2026-02-13T00:36:50.613707"
+  },
+  {
+    "id": 80,
+    "session_id": "sess_f251f1d0fe3f",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "I apologize, but I'm having trouble processing your request. Could you please rephrase or try again?",
+    "metadata": {},
+    "created_at": "2026-02-13T00:36:51.501898"
+  },
+  {
+    "id": 81,
+    "session_id": "sess_818091593d1d",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hi",
+    "metadata": {},
+    "created_at": "2026-02-13T00:36:51.511888"
+  },
+  {
+    "id": 82,
+    "session_id": "sess_818091593d1d",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "I apologize, but I'm having trouble processing your request. Could you please rephrase or try again?",
+    "metadata": {},
+    "created_at": "2026-02-13T00:36:52.195806"
+  },
+  {
+    "id": 83,
+    "session_id": "sess_acad5772d37a",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hi",
+    "metadata": {},
+    "created_at": "2026-02-13T00:37:19.825249"
+  },
+  {
+    "id": 84,
+    "session_id": "sess_acad5772d37a",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "I apologize, but I'm having trouble processing your request. Could you please rephrase or try again?",
+    "metadata": {},
+    "created_at": "2026-02-13T00:37:20.231375"
+  },
+  {
+    "id": 85,
+    "session_id": "sess_bece52aca8b6",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hi",
+    "metadata": {},
+    "created_at": "2026-02-13T00:37:39.381243"
+  },
+  {
+    "id": 86,
+    "session_id": "sess_bece52aca8b6",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "I apologize, but I'm having trouble processing your request. Could you please rephrase or try again?",
+    "metadata": {},
+    "created_at": "2026-02-13T00:37:39.811097"
+  },
+  {
+    "id": 87,
+    "session_id": "sess_5d56a108e715",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hi",
+    "metadata": {},
+    "created_at": "2026-02-13T00:42:02.723727"
+  },
+  {
+    "id": 88,
+    "session_id": "sess_5d56a108e715",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "I apologize, but I'm having trouble processing your request. Could you please rephrase or try again?",
+    "metadata": {},
+    "created_at": "2026-02-13T00:42:03.391819"
+  },
+  {
+    "id": 89,
+    "session_id": "sess_0e1697057c12",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hi",
+    "metadata": {},
+    "created_at": "2026-02-13T00:52:00.561962"
+  },
+  {
+    "id": 90,
+    "session_id": "sess_0e1697057c12",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "I apologize, but I'm having trouble processing your request. Could you please rephrase or try again?",
+    "metadata": {},
+    "created_at": "2026-02-13T00:52:01.240462"
+  },
+  {
+    "id": 91,
+    "session_id": "sess_c973567ca6a5",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hi",
+    "metadata": {},
+    "created_at": "2026-02-13T00:58:59.570967"
+  },
+  {
+    "id": 92,
+    "session_id": "sess_c973567ca6a5",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Hello! I'm Clara, your personal fashion stylist. How can I help you find the perfect outfit today?",
+    "metadata": {},
+    "created_at": "2026-02-13T00:59:08.893782"
+  },
+  {
+    "id": 93,
+    "session_id": "sess_c973567ca6a5",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "i need a dress for formal occasion clara",
+    "metadata": {},
+    "created_at": "2026-02-13T00:59:36.607713"
+  },
+  {
+    "id": 94,
+    "session_id": "sess_c973567ca6a5",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Hello! I'd be happy to help you find the perfect formal dress. To give you the best recommendations, could you tell me:\n\n1. What type of formal occasion is it (wedding, gala, prom, etc.)?\n2. Do you have a preferred color or style?\n3. What's your approximate budget?\n4. What's your size?\n\nOnce I have these details, I can suggest specific dresses from our current collection that would be perfect for your event.",
+    "metadata": {},
+    "created_at": "2026-02-13T00:59:48.485383"
+  },
+  {
+    "id": 95,
+    "session_id": "sess_720b837c9ad1",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hi",
+    "metadata": {},
+    "created_at": "2026-02-13T01:18:45.678228"
+  },
+  {
+    "id": 96,
+    "session_id": "sess_720b837c9ad1",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Hello John! I'm Clara, your personal shopping assistant. How can I help you find the perfect fashion pieces today? Are you looking for something specific for an upcoming occasion or just browsing?",
+    "metadata": {},
+    "created_at": "2026-02-13T01:18:58.241979"
+  },
+  {
+    "id": 97,
+    "session_id": "sess_720b837c9ad1",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "i am going to a wedding",
+    "metadata": {},
+    "created_at": "2026-02-13T01:19:17.260398"
+  },
+  {
+    "id": 98,
+    "session_id": "sess_720b837c9ad1",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Hello John! A wedding is a wonderful occasion to dress up. To help you find the perfect outfit, could you tell me how formal the wedding is? (black-tie, cocktail, casual, etc.)",
+    "metadata": {},
+    "created_at": "2026-02-13T01:19:29.019680"
+  },
+  {
+    "id": 99,
+    "session_id": "sess_720b837c9ad1",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hi",
+    "metadata": {},
+    "created_at": "2026-02-13T01:20:07.628694"
+  },
+  {
+    "id": 100,
+    "session_id": "sess_720b837c9ad1",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Hello again! Still looking for wedding attire? To help you find the perfect outfit, could you tell me what type of wedding it is? (formal, semi-formal, outdoor, etc.)",
+    "metadata": {},
+    "created_at": "2026-02-13T01:20:16.594994"
+  },
+  {
+    "id": 101,
+    "session_id": "sess_d7a5e7347128",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hi",
+    "metadata": {},
+    "created_at": "2026-02-13T01:26:04.799021"
+  },
+  {
+    "id": 102,
+    "session_id": "sess_d7a5e7347128",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Hello! I'm Clara, your personal shopping assistant. How can I help you find the perfect fashion pieces today?",
+    "metadata": {},
+    "created_at": "2026-02-13T01:26:13.771856"
+  },
+  {
+    "id": 103,
+    "session_id": "sess_d7a5e7347128",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "I am going to vacation this month",
+    "metadata": {},
+    "created_at": "2026-02-13T01:26:32.535066"
+  },
+  {
+    "id": 104,
+    "session_id": "sess_d7a5e7347128",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Great! Where are you heading for your vacation? Knowing your destination and activities will help me recommend the perfect pieces for your trip.",
+    "metadata": {},
+    "created_at": "2026-02-13T01:26:41.275734"
+  },
+  {
+    "id": 105,
+    "session_id": "sess_d7a5e7347128",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hello",
+    "metadata": {},
+    "created_at": "2026-02-13T01:27:02.589635"
+  },
+  {
+    "id": 106,
+    "session_id": "sess_d7a5e7347128",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Hello! I remember you mentioned going on vacation this month. To help you find the perfect vacation outfits, could you tell me where you're heading and what activities you have planned?",
+    "metadata": {},
+    "created_at": "2026-02-13T01:27:21.767398"
+  },
+  {
+    "id": 107,
+    "session_id": "sess_d12b72069bb1",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hi",
+    "metadata": {},
+    "created_at": "2026-02-13T02:45:33.463658"
+  },
+  {
+    "id": 108,
+    "session_id": "sess_d12b72069bb1",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Hello! I'm Clara, your personal fashion advisor. How can I help you find the perfect pieces today?",
+    "metadata": {},
+    "created_at": "2026-02-13T02:45:43.124473"
+  },
+  {
+    "id": 109,
+    "session_id": "sess_55b332db834b",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "hi",
+    "metadata": {},
+    "created_at": "2026-02-13T02:49:50.108831"
+  },
+  {
+    "id": 110,
+    "session_id": "sess_55b332db834b",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "Hello John! Welcome back. I'm here to help you find the perfect pieces for your wardrobe. What are you looking for today - perhaps something for a special occasion or to refresh your everyday style?",
+    "metadata": {},
+    "created_at": "2026-02-13T02:50:02.531197"
+  },
+  {
+    "id": 111,
+    "session_id": "sess_55b332db834b",
+    "message_type": "user",
+    "agent_type": null,
+    "content": "i am going to a party",
+    "metadata": {},
+    "created_at": "2026-02-13T02:50:16.560762"
+  },
+  {
+    "id": 112,
+    "session_id": "sess_55b332db834b",
+    "message_type": "assistant",
+    "agent_type": "sales",
+    "content": "For your party, I'd recommend the Elegant Evening Gown at $299.99. This stunning floor-length gown with sequin embroidery is perfect for formal parties and special occasions. It comes in Black, Navy Blue, and Burgundy with sizes XS-XL available.\n\nIf it's a more casual party, the Summer Floral Dress at $89.99 would be a great option - it's light and breezy with floral prints in Blue or Pink.\n\nWhich type of party are you attending? This will help me recommend the best fit for your specific event.",
+    "metadata": {},
+    "created_at": "2026-02-13T02:50:48.595324"
   }
 ]
