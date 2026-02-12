@@ -82,13 +82,6 @@ curl -X POST http://127.0.0.1:8000/sales \
     "history": []
   }'
 
-# 8. Test Voice Assistant (Agentic AI via voice)
-# Note: This requires uploading an audio file, example with curl:
-# curl -X POST http://127.0.0.1:8000/voice \
-#   -F "file=@path/to/audio.wav" \
-#   -F "session_id=session130" \
-#   -F "user_id=1"
-
 # 9. Test Sales Agent with different channel (mobile)
 curl -X POST http://127.0.0.1:8000/sales \
   -H "Content-Type: application/json" \
