@@ -1,5 +1,5 @@
 from typing import List, Dict, Any
-import random
+import re
 from database import db
 
 class RecommendationAgent:
@@ -49,24 +49,30 @@ class RecommendationAgent:
         """Parse user intent from message"""
         message_lower = message.lower()
         intent = {}
-        
+
         # Check for categories
         categories = ["evening", "summer", "office", "casual", "formal", "wedding", "party"]
         for category in categories:
             if category in message_lower:
                 intent["category"] = category.capitalize()
                 break
-        
+
         # Check for occasions
         occasions = ["wedding", "party", "business", "date", "formal", "casual", "vacation"]
         for occasion in occasions:
             if occasion in message_lower:
                 intent["occasion"] = occasion.capitalize()
                 break
-        
-        # Check for price mentions
-        if "under" in message_lower or "less than" in message_lower:
-            # Simple price extraction - in production use proper NLP
-            intent["max_price"] = 100  # Default
-        
+
+        budget_match = re.search(r"(?:under|below|less than|upto|up to)\s*\$?(\d+(?:\.\d+)?)", message_lower)
+        if budget_match:
+            intent["max_price"] = float(budget_match.group(1))
+
+        range_match = re.search(r"\$?(\d+(?:\.\d+)?)\s*(?:to|\-|–)\s*\$?(\d+(?:\.\d+)?)", message_lower)
+        if range_match:
+            low = float(range_match.group(1))
+            high = float(range_match.group(2))
+            intent["min_price"] = min(low, high)
+            intent["max_price"] = max(low, high)
+
         return intent
