@@ -1,16 +1,13 @@
+from pydantic import BaseModel
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
-
-from pydantic import BaseModel, EmailStr, Field
-
 
 class MessageRole(str, Enum):
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
     AGENT = "agent"
-
 
 class Channel(str, Enum):
     WEB = "web"
@@ -20,12 +17,10 @@ class Channel(str, Enum):
     KIOSK = "kiosk"
     VOICE = "voice"
 
-
 class Message(BaseModel):
     role: str
     content: str
     timestamp: Optional[datetime] = None
-
 
 class SalesRequest(BaseModel):
     message: str
@@ -34,14 +29,12 @@ class SalesRequest(BaseModel):
     channel: Channel = Channel.WEB
     history: Optional[List[Message]] = []
 
-
 class SalesResponse(BaseModel):
     reply: str
     session_id: Optional[str] = None
     requires_action: bool = False
     action_type: Optional[str] = None
     action_data: Optional[Dict[str, Any]] = None
-
 
 class Product(BaseModel):
     id: int
@@ -57,12 +50,10 @@ class Product(BaseModel):
     image_url: str
     featured_dress: bool = False
 
-
 class CartItem(BaseModel):
     product_id: int
     quantity: int
     product: Optional[Product] = None
-
 
 class Order(BaseModel):
     order_number: str
@@ -71,28 +62,9 @@ class Order(BaseModel):
     status: str
     items: List[Dict[str, Any]]
 
-
 class AgentTask(BaseModel):
     task_id: str
     agent_type: str
     status: str
     parameters: Dict[str, Any]
     result: Optional[Dict[str, Any]] = None
-
-
-class SignUpRequest(BaseModel):
-    first_name: str = Field(min_length=1, max_length=80)
-    last_name: str = Field(min_length=1, max_length=80)
-    email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
-
-
-class SignInRequest(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
-
-
-class AuthResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    user: Dict[str, Any]
