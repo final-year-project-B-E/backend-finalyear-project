@@ -1,5 +1,5 @@
 from pydantic import BaseModel, model_validator
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Literal
 from datetime import datetime
 from enum import Enum
 
@@ -50,6 +50,16 @@ class SalesResponse(BaseModel):
     requires_action: bool = False
     action_type: Optional[str] = None
     action_data: Optional[Dict[str, Any]] = None
+
+VoiceAgentStage = Literal["intro", "qualification", "closing"]
+
+class VoiceAgentRequest(BaseModel):
+    message: str
+    stage: VoiceAgentStage
+
+class VoiceAgentResponse(BaseModel):
+    reply: str
+    next_stage: VoiceAgentStage
 
 class Product(BaseModel):
     id: int
