@@ -1,9 +1,19 @@
 from fastapi import FastAPI, HTTPException, Body, UploadFile, File, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from schemas import SalesRequest, SalesResponse, UserRegister, UserLogin, UserResponse, LoginResponse
+from schemas import (
+    SalesRequest,
+    SalesResponse,
+    UserRegister,
+    UserLogin,
+    UserResponse,
+    LoginResponse,
+    VoiceAgentRequest,
+    VoiceAgentResponse,
+)
 from orchestrator import Orchestrator
 from database import Database
+from voice_agent import build_voice_fallback, build_voice_prompt, call_gemini, get_next_stage
 import os
 import tempfile
 import subprocess
@@ -75,6 +85,21 @@ async def sales_chat(req: SalesRequest):
     except Exception as error:
         logger.exception("Sales endpoint failed")
         raise HTTPException(status_code=500, detail=str(error))
+
+
+@app.post("/voice-agent", response_model=VoiceAgentResponse)
+async def voice_agent(req: VoiceAgentRequest):
+    """Voice agent endpoint that keeps a lightweight outbound call flow separate from /sales."""
+    next_stage = get_next_stage(req.stage)
+    prompt = build_voice_prompt(req.stage, req.message)
+
+    try:
+        reply = call_gemini(prompt)
+    except Exception as error:
+        logger.warning("Voice agent fell back after Gemini error: %s", error)
+        reply = build_voice_fallback(req.stage)
+
+    return VoiceAgentResponse(reply=reply, next_stage=next_stage)
 
 
 # ==================== Authentication Endpoints ====================
