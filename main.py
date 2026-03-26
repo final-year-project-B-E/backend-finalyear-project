@@ -1,3 +1,8 @@
+from dotenv import load_dotenv
+
+# Load environment variables from .env file BEFORE any other imports
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException, Body, UploadFile, File, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -8,15 +13,11 @@ import os
 import tempfile
 import subprocess
 from pathlib import Path
-from dotenv import load_dotenv
 from datetime import datetime
 import json
 from bson import ObjectId
 from typing import Any, Dict, List
 import logging
-
-# Load environment variables from .env file
-load_dotenv()
 
 import uvicorn
 import asyncio
