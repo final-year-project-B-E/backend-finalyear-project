@@ -11,7 +11,7 @@ from schemas import Channel
 load_dotenv()
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
-MODEL = os.getenv("OPENROUTER_MODEL", "z-ai/glm-4.5-air:free")
+MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/sfree")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 

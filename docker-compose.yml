@@ -1,6 +1,5 @@
-version: '3.8'
-
 services:
+  # FastAPI Application Service (connects to MongoDB Atlas - Cloud)
   app:
     build:
       context: .
@@ -11,6 +10,8 @@ services:
     environment:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - OPENROUTER_MODEL=${OPENROUTER_MODEL}
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB_NAME=${MONGODB_DB_NAME}
     volumes:
       - ./data:/app/data
     restart: unless-stopped
