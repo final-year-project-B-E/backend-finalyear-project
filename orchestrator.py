@@ -8,6 +8,7 @@ from agents.fulfillment_agent import FulfillmentAgent
 from agents.loyalty_agent import LoyaltyAgent
 from agents.support_agent import SupportAgent
 from database import db
+from commerce_service import commerce_service
 from schemas import SalesRequest, SalesResponse
 
 
@@ -44,6 +45,18 @@ class Orchestrator:
 
         # Get user context
         user_context = self._build_user_context(request.user_id, session_id)
+
+        deterministic_reply = commerce_service.maybe_build_chatbot_reply(request.user_id, request.message)
+        if deterministic_reply:
+            if session_id:
+                db.add_chat_message(session_id, "assistant", deterministic_reply, "support")
+            return SalesResponse(
+                reply=deterministic_reply,
+                session_id=session_id,
+                requires_action=False,
+                action_type=None,
+                action_data=None,
+            )
         
         # Get chat history
         chat_history = []
@@ -100,6 +113,10 @@ class Orchestrator:
                 }
             )
 
+        commerce_context = commerce_service.get_chatbot_context(user_id)
+        if commerce_context:
+            base_context.update(commerce_context)
+
         cross_messages = db.get_user_recent_messages(user_id, limit=10, exclude_session_id=session_id)
         memory_snippets = []
         for message in cross_messages[-6:]:
@@ -122,7 +139,7 @@ class Orchestrator:
             "recommendation": ["recommend", "suggest", "find", "looking for", "style", "dress", "occasion", "formal"],
             "inventory": ["stock", "available", "in stock", "inventory", "size availability"],
             "payment": ["pay", "payment", "checkout", "buy", "purchase", "price total"],
-            "fulfillment": ["delivery", "ship", "pickup", "arrive", "track", "shipping"],
+            "fulfillment": ["delivery", "ship", "pickup", "arrive", "track", "shipping", "order status", "where is my order"],
             "loyalty": ["discount", "coupon", "promo", "loyalty", "points", "offer"],
             "support": ["return", "exchange", "refund", "issue", "problem", "damaged"],
         }
@@ -143,6 +160,21 @@ class Orchestrator:
         user_context: Dict[str, Any],
     ) -> List[Dict[str, str]]:
         outputs: List[Dict[str, str]] = []
+
+        if user_context.get("latest_order") or user_context.get("activity_summary"):
+            outputs.append(
+                {
+                    "source": "commerce_context",
+                    "content": str(
+                        {
+                            "journey": user_context.get("journey"),
+                            "latest_order": user_context.get("latest_order", {}),
+                            "latest_payment": user_context.get("latest_payment", {}),
+                            "activity_summary": user_context.get("activity_summary", {}),
+                        }
+                    ),
+                }
+            )
 
         for intent in intents:
             if intent == "sales":

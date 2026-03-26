@@ -61,6 +61,101 @@ class VoiceAgentResponse(BaseModel):
     reply: str
     next_stage: VoiceAgentStage
 
+class OrderStatus(str, Enum):
+    ORDER_PLACED = "order_placed"
+    PAYMENT_CONFIRMED = "payment_confirmed"
+    PROCESSING = "processing"
+    SHIPPED = "shipped"
+    OUT_FOR_DELIVERY = "out_for_delivery"
+    DELIVERED = "delivered"
+    PAYMENT_FAILED = "payment_failed"
+
+class PaymentStatus(str, Enum):
+    INITIATED = "initiated"
+    PENDING = "pending"
+    SUCCESS = "success"
+    FAILED = "failed"
+
+class EventType(str, Enum):
+    ORDER_CREATED = "order_created"
+    PAYMENT_INITIATED = "payment_initiated"
+    PAYMENT_CONFIRMED = "payment_confirmed"
+    PAYMENT_FAILED = "payment_failed"
+    ORDER_PROCESSING = "order_processing"
+    ORDER_SHIPPED = "order_shipped"
+    ORDER_OUT_FOR_DELIVERY = "order_out_for_delivery"
+    ORDER_DELIVERED = "order_delivered"
+    PRODUCT_VIEWED = "product_viewed"
+    CART_ABANDONED = "cart_abandoned"
+    WHATSAPP_CONNECTED = "whatsapp_connected"
+    WHATSAPP_DISCONNECTED = "whatsapp_disconnected"
+
+class NotificationStatus(str, Enum):
+    QUEUED = "queued"
+    SIMULATED_SENT = "simulated_sent"
+    FAILED = "failed"
+
+class CallScenario(str, Enum):
+    CART_ABANDONMENT = "cart_abandonment"
+    PRODUCT_INTEREST = "product_interest"
+    ORDER_UPDATE = "order_update"
+    POST_DELIVERY_FOLLOWUP = "post_delivery_followup"
+
+class CallWorkflowStatus(str, Enum):
+    SCHEDULED = "scheduled"
+    READY = "ready"
+    COMPLETED = "completed"
+
+class OrderTimelineEntry(BaseModel):
+    status: str
+    label: str
+    description: str
+    source: str
+    metadata: Dict[str, Any] = {}
+    created_at: str
+
+class WhatsAppConnection(BaseModel):
+    provider: str = "openclaw"
+    mode: str = "simulated"
+    status: str = "disconnected"
+    phone_number: Optional[str] = None
+    opt_in: bool = True
+    connected_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+class CheckoutItemRequest(BaseModel):
+    product_id: str
+    product_name: Optional[str] = None
+    quantity: int = 1
+    price: Optional[float] = None
+    size: Optional[str] = None
+    color: Optional[str] = None
+
+class CheckoutRequest(BaseModel):
+    shipping_address: str
+    billing_address: str
+    payment_method: str
+    payment_scenario: Literal["success", "pending", "failed"] = "success"
+    items: List[CheckoutItemRequest] = []
+
+class OrderAdvanceRequest(BaseModel):
+    target_status: OrderStatus
+    note: Optional[str] = None
+
+class PaymentRetryRequest(BaseModel):
+    scenario: Literal["success", "pending", "failed"] = "success"
+
+class ActivityRequest(BaseModel):
+    activity_type: str
+    product_id: Optional[int] = None
+    order_number: Optional[str] = None
+    metadata: Dict[str, Any] = {}
+
+class WhatsAppConnectionRequest(BaseModel):
+    phone_number: Optional[str] = None
+    connected: bool
+    opt_in: bool = True
+
 class Product(BaseModel):
     id: int
     product_name: str
@@ -86,6 +181,8 @@ class Order(BaseModel):
     final_amount: float
     status: str
     items: List[Dict[str, Any]]
+    payment_status: Optional[str] = None
+    timeline: List[OrderTimelineEntry] = []
 
 class AgentTask(BaseModel):
     task_id: str
@@ -120,6 +217,7 @@ class UserResponse(BaseModel):
     loyalty_score: int = 0
     is_active: bool = True
     is_admin: bool = False
+    whatsapp_connection: Optional[WhatsAppConnection] = None
     created_at: str
     updated_at: str
 
