@@ -23,7 +23,7 @@ class FulfillmentAgent:
         else:
             return self._show_fulfillment_options(pending_orders)
     
-    def _handle_delivery(self, user_id: int, message: str) -> str:
+    def _handle_delivery(self, user_id: str, message: str) -> str:
         """Handle home delivery arrangement"""
         
         # Extract delivery address
@@ -54,7 +54,7 @@ class FulfillmentAgent:
         
         return response
     
-    def _handle_store_pickup(self, user_id: int, message: str) -> str:
+    def _handle_store_pickup(self, user_id: str, message: str) -> str:
         """Handle in-store pickup arrangement"""
         
         # Get user's location (simulated)
@@ -85,14 +85,14 @@ class FulfillmentAgent:
         
         return response
     
-    def _check_delivery_status(self, user_id: int) -> str:
+    def _check_delivery_status(self, user_id: str) -> str:
         """Check delivery status of recent orders"""
         
         # Get recent orders
-        recent_orders = []
-        for order in db.orders:
-            if order["user_id"] == user_id and order["order_status"] in ["processing", "shipped"]:
-                recent_orders.append(order)
+        recent_orders = [
+            order for order in db.get_user_orders(user_id)
+            if order.get("order_status") in ["processing", "shipped"] or order.get("status") in ["processing", "shipped"]
+        ]
         
         if not recent_orders:
             return "You don't have any pending deliveries."
@@ -101,14 +101,14 @@ class FulfillmentAgent:
         
         for order in recent_orders[:3]:  # Show only 3 most recent
             tracking_number = order.get("tracking_number", "Not assigned yet")
-            status = order["order_status"]
+            status = order.get("order_status") or order.get("status", "processing")
             
             response += f"**Order {order['order_number']}**\n"
             response += f"- Status: {status.upper()}\n"
             response += f"- Tracking: {tracking_number}\n"
             
             if status == "shipped":
-                estimated_delivery = self._calculate_delivery_estimate(order["created_at"])
+                estimated_delivery = self._calculate_delivery_estimate(str(order["created_at"]))
                 response += f"- Estimated Delivery: {estimated_delivery}\n"
             
             response += "\n"
@@ -160,9 +160,9 @@ class FulfillmentAgent:
         
         return ""
     
-    def _get_user_city(self, user_id: int) -> str:
+    def _get_user_city(self, user_id: str) -> str:
         """Get user's city from profile"""
-        user = db.get_user(user_id)
+        user = db.get_user_flexible(user_id)
         return user.get("city", "New York") if user else "New York"
     
     def _get_nearby_stores(self, city: str) -> List[Dict]:
@@ -210,13 +210,12 @@ class FulfillmentAgent:
         
         return stores_data.get(city, stores_data["New York"])
     
-    def _get_pending_orders(self, user_id: int) -> List[Dict]:
+    def _get_pending_orders(self, user_id: str) -> List[Dict]:
         """Get user's pending orders"""
-        pending = []
-        for order in db.orders:
-            if order["user_id"] == user_id and order["order_status"] in ["processing", "confirmed"]:
-                pending.append(order)
-        return pending
+        return [
+            order for order in db.get_user_orders(user_id)
+            if order.get("order_status") in ["processing", "confirmed"] or order.get("status") in ["processing", "confirmed"]
+        ]
     
     def _calculate_delivery_estimate(self, order_date: str) -> str:
         """Calculate delivery estimate"""

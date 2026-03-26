@@ -11,7 +11,7 @@ class LoyaltyAgent:
         if not user_id:
             return "I need to know who you are to check your offers. Please provide your account details."
         
-        user = db.get_user(user_id)
+        user = db.get_user_flexible(user_id)
         if not user:
             return "I couldn't find your account. Please sign in or create an account."
         
@@ -69,7 +69,7 @@ class LoyaltyAgent:
         
         return response
     
-    def _show_available_coupons(self, user_id: int, tier: str) -> str:
+    def _show_available_coupons(self, user_id: str, tier: str) -> str:
         """Show available coupons and promotions"""
         
         coupons = self._get_available_coupons(user_id, tier)
@@ -94,7 +94,7 @@ class LoyaltyAgent:
         
         return response
     
-    def _apply_coupon(self, message: str, user_id: int) -> str:
+    def _apply_coupon(self, message: str, user_id: str) -> str:
         """Apply a coupon code"""
         
         # Extract coupon code
@@ -122,7 +122,7 @@ class LoyaltyAgent:
         
         return response
     
-    def _redeem_points(self, message: str, user_id: int, points_balance: int) -> str:
+    def _redeem_points(self, message: str, user_id: str, points_balance: int) -> str:
         """Redeem loyalty points"""
         
         # Extract points amount
@@ -205,7 +205,7 @@ class LoyaltyAgent:
         else:
             return "You're at the highest tier!"
     
-    def _get_available_coupons(self, user_id: int, tier: str) -> List[Dict]:
+    def _get_available_coupons(self, user_id: str, tier: str) -> List[Dict]:
         """Get available coupons for user (simulated)"""
         
         base_coupons = [
@@ -294,7 +294,7 @@ class LoyaltyAgent:
                 return int(word)
         return 0
     
-    def _validate_coupon(self, code: str, user_id: int) -> Dict:
+    def _validate_coupon(self, code: str, user_id: str) -> Dict:
         """Validate coupon code (simulated)"""
         # In production, this would check a database
         valid_coupons = {

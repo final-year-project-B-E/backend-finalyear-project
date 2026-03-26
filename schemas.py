@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from enum import Enum
@@ -23,11 +23,26 @@ class Message(BaseModel):
     timestamp: Optional[datetime] = None
 
 class SalesRequest(BaseModel):
-    message: str
-    user_id: Optional[int] = None
+    message: str = ""
+    prompt: Optional[str] = None
+    user_id: Optional[str] = None
     session_id: Optional[str] = None
     channel: Channel = Channel.WEB
     history: Optional[List[Message]] = []
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_message(cls, data: Any):
+        if not isinstance(data, dict):
+            return data
+
+        message = data.get("message")
+        prompt = data.get("prompt")
+
+        if (message is None or str(message).strip() == "") and prompt is not None:
+            data["message"] = prompt
+
+        return data
 
 class SalesResponse(BaseModel):
     reply: str

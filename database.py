@@ -40,6 +40,7 @@ class Database:
             "users": [("email", 1), ("user_id", 1)],
             "products": [("id", 1), ("product_name", 1), ("dress_category", 1)],
             "carts": [("user_id", 1)],
+            "wishlists": [("user_id", 1)],
             "orders": [("order_number", 1), ("user_id", 1), ("created_at", -1)],
             "order_items": [("order_id", 1)],
             "chat_sessions": [("session_id", 1), ("user_id", 1), ("created_at", -1)],
@@ -217,6 +218,29 @@ class Database:
         except:
             pass
         return None
+
+    def get_user_flexible(self, user_id: Optional[str]) -> Optional[Dict]:
+        """Get user using either MongoDB _id or legacy numeric user_id."""
+        if not user_id:
+            return None
+
+        user = self.get_user_by_id(str(user_id))
+        if user:
+            return user
+
+        try:
+            legacy_id = int(user_id)
+        except (TypeError, ValueError):
+            return None
+
+        legacy_user = self.get_user(legacy_id)
+        if not legacy_user:
+            return None
+
+        user_data = dict(legacy_user)
+        if "_id" in user_data:
+            user_data["id"] = str(user_data.pop("_id"))
+        return user_data
     
     def update_user_profile(self, user_id: str, **kwargs) -> bool:
         """Update user profile"""
@@ -230,6 +254,34 @@ class Database:
             return result.modified_count > 0
         except:
             return False
+
+    def update_user_loyalty(self, user_id: str, points_delta: int) -> bool:
+        """Increment a user's loyalty score."""
+        from bson import ObjectId
+
+        try:
+            result = self.db.users.update_one(
+                {"_id": ObjectId(user_id)},
+                {
+                    "$inc": {"loyalty_score": points_delta},
+                    "$set": {"updated_at": datetime.utcnow().isoformat()},
+                },
+            )
+            return result.modified_count > 0
+        except Exception:
+            try:
+                legacy_id = int(user_id)
+            except (TypeError, ValueError):
+                return False
+
+            result = self.db.users.update_one(
+                {"user_id": legacy_id},
+                {
+                    "$inc": {"loyalty_score": points_delta},
+                    "$set": {"updated_at": datetime.utcnow().isoformat()},
+                },
+            )
+            return result.modified_count > 0
     
     # Product operations
     def get_all_products(self) -> List[Dict]:
@@ -257,23 +309,78 @@ class Database:
     def search_products(self, category: Optional[str] = None, 
                        occasion: Optional[str] = None,
                        min_price: Optional[float] = None,
-                       max_price: Optional[float] = None) -> List[Dict]:
+                       max_price: Optional[float] = None,
+                       query: Optional[str] = None) -> List[Dict]:
         """Search products with filters from MongoDB."""
-        query = {}
+        filters = {}
         if category:
-            query["dress_category"] = category
-        if occasion:
-            query["occasion"] = occasion
-        if min_price:
-            query["price"] = {"$gte": min_price}
-        if max_price:
-            if "price" in query:
-                query["price"]["$lte"] = max_price
+            if category in {"women", "men", "kids"}:
+                filters["dress_category"] = {"$regex": f"^{category}-", "$options": "i"}
             else:
-                query["price"] = {"$lte": max_price}
-        
-        results = list(self.db.products.find(query))
+                filters["dress_category"] = {"$regex": f"^{category}$", "$options": "i"}
+        if occasion:
+            filters["occasion"] = {"$regex": f"^{occasion}$", "$options": "i"}
+        if min_price is not None:
+            filters["price"] = {"$gte": min_price}
+        if max_price is not None:
+            if "price" in filters:
+                filters["price"]["$lte"] = max_price
+            else:
+                filters["price"] = {"$lte": max_price}
+        if filters:
+            mongo_query = filters
+        else:
+            mongo_query = {}
+
+        if query:
+            text_match = {
+                "$or": [
+                    {"product_name": {"$regex": query, "$options": "i"}},
+                    {"description": {"$regex": query, "$options": "i"}},
+                    {"dress_category": {"$regex": query, "$options": "i"}},
+                    {"occasion": {"$regex": query, "$options": "i"}},
+                ]
+            }
+            if mongo_query:
+                mongo_query = {"$and": [mongo_query, text_match]}
+            else:
+                mongo_query = text_match
+
+        results = list(self.db.products.find(mongo_query))
         return results
+
+    def get_catalog_metadata(self) -> Dict[str, Any]:
+        """Build catalog categories and occasion metadata from products."""
+        products = self.get_all_products()
+        categories: Dict[str, Dict[str, Any]] = {}
+        occasions: Dict[str, int] = {}
+
+        for product in products:
+            category_id = str(product.get("dress_category") or "uncategorized")
+            category_entry = categories.setdefault(
+                category_id,
+                {
+                    "id": category_id,
+                    "name": category_id.replace("-", " ").title(),
+                    "count": 0,
+                    "image_url": product.get("image_url"),
+                },
+            )
+            category_entry["count"] += 1
+            if not category_entry.get("image_url") and product.get("image_url"):
+                category_entry["image_url"] = product.get("image_url")
+
+            occasion = str(product.get("occasion") or "").strip()
+            if occasion:
+                occasions[occasion] = occasions.get(occasion, 0) + 1
+
+        return {
+            "categories": sorted(categories.values(), key=lambda item: item["name"]),
+            "occasions": [
+                {"id": occasion.lower().replace(" ", "-"), "name": occasion, "count": count}
+                for occasion, count in sorted(occasions.items(), key=lambda item: item[0].lower())
+            ],
+        }
     
     def update_stock(self, product_id: int, quantity: int) -> bool:
         """Update product stock in MongoDB."""
@@ -332,6 +439,47 @@ class Database:
         """Clear user's cart."""
         result = self.db.carts.delete_one({"user_id": user_id})
         return result.deleted_count > 0
+
+    def get_wishlist(self, user_id: str) -> Optional[Dict]:
+        """Get user's wishlist document."""
+        return self.db.wishlists.find_one({"user_id": user_id})
+
+    def get_user_wishlist(self, user_id: str) -> List[Dict]:
+        """Get wishlist items with product details."""
+        wishlist = self.get_wishlist(user_id)
+        if not wishlist:
+            return []
+
+        products: List[Dict] = []
+        for product_id in wishlist.get("product_ids", []):
+            product = self.get_product(product_id)
+            if product:
+                products.append(product)
+        return products
+
+    def add_to_wishlist(self, user_id: str, product_id: int) -> bool:
+        """Add a product to a user's wishlist."""
+        result = self.db.wishlists.update_one(
+            {"user_id": user_id},
+            {
+                "$addToSet": {"product_ids": product_id},
+                "$set": {"updated_at": datetime.utcnow().isoformat()},
+                "$setOnInsert": {"created_at": datetime.utcnow().isoformat()},
+            },
+            upsert=True,
+        )
+        return result.modified_count > 0 or result.upserted_id is not None
+
+    def remove_from_wishlist(self, user_id: str, product_id: int) -> bool:
+        """Remove a product from a user's wishlist."""
+        result = self.db.wishlists.update_one(
+            {"user_id": user_id},
+            {
+                "$pull": {"product_ids": product_id},
+                "$set": {"updated_at": datetime.utcnow().isoformat()},
+            },
+        )
+        return result.modified_count > 0
     
     # Order operations
     def create_order(self, order_data: Dict[str, Any]) -> str:
@@ -362,7 +510,7 @@ class Database:
         return result.modified_count > 0
     
     # Chat operations
-    def create_chat_session(self, user_id: str, channel: str = "web") -> str:
+    def create_chat_session(self, user_id: Optional[str] = None, channel: str = "web") -> str:
         """Create a new chat session."""
         import uuid
         session_id = f"sess_{uuid.uuid4().hex[:12]}"
@@ -378,7 +526,7 @@ class Database:
         result = self.db.chat_sessions.insert_one(new_session)
         return session_id
 
-    def get_or_create_chat_session(self, user_id: str, session_id: Optional[str] = None,
+    def get_or_create_chat_session(self, user_id: Optional[str] = None, session_id: Optional[str] = None,
                                    channel: str = "web") -> str:
         """Get existing chat session or create new one."""
         if session_id:
@@ -399,6 +547,10 @@ class Database:
             "created_at": datetime.utcnow().isoformat()
         }
         result = self.db.chat_messages.insert_one(new_message)
+        self.db.chat_sessions.update_one(
+            {"session_id": session_id},
+            {"$set": {"updated_at": datetime.utcnow().isoformat()}},
+        )
         return str(result.inserted_id)
 
     def get_user_recent_messages(self, user_id: str, limit: int = 12, exclude_session_id: Optional[str] = None) -> List[Dict]:
@@ -417,6 +569,48 @@ class Database:
             .limit(limit)
         )
         return list(reversed(messages))
+
+    def get_user_chat_sessions(self, user_id: str, limit: int = 20) -> List[Dict]:
+        """List chat sessions for a user with lightweight thread previews."""
+        sessions = list(
+            self.db.chat_sessions.find({"user_id": user_id})
+            .sort("updated_at", -1)
+            .limit(limit)
+        )
+
+        session_summaries: List[Dict[str, Any]] = []
+        for session in sessions:
+            session_id = session.get("session_id")
+            if not session_id:
+                continue
+
+            messages = list(
+                self.db.chat_messages.find({"session_id": session_id})
+                .sort("created_at", 1)
+            )
+            if not messages:
+                continue
+
+            first_user_message = next(
+                (message for message in messages if message.get("message_type") == "user" and message.get("content")),
+                messages[0],
+            )
+            last_message = messages[-1]
+
+            session_summaries.append(
+                {
+                    "session_id": session_id,
+                    "channel": session.get("channel", "web"),
+                    "status": session.get("status", "active"),
+                    "created_at": session.get("created_at"),
+                    "updated_at": session.get("updated_at"),
+                    "message_count": len(messages),
+                    "title": str(first_user_message.get("content") or "New chat")[:80],
+                    "last_message_preview": str(last_message.get("content") or "")[:120],
+                }
+            )
+
+        return session_summaries
 
     def get_chat_history(self, session_id: str, limit: int = 10) -> List[Dict]:
         """Get chat history for a session."""

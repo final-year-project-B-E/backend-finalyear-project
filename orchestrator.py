@@ -33,24 +33,17 @@ class Orchestrator:
 
     async def process_message(self, request: SalesRequest) -> SalesResponse:
         """Main entry point for processing sales conversations."""
-        session_id = request.session_id
-        if not session_id and request.user_id:
-            session_id = db.create_chat_session(request.user_id, request.channel)
+        session_id = db.get_or_create_chat_session(
+            user_id=request.user_id,
+            session_id=request.session_id,
+            channel=request.channel.value,
+        )
 
         if session_id:
             db.add_chat_message(session_id, "user", request.message)
 
         # Get user context
-        user_context = {}
-        if request.user_id:
-            user = db.get_user(request.user_id)
-            if user:
-                user_context = {
-                    "name": f"{user['first_name']} {user['last_name']}",
-                    "loyalty_score": user['loyalty_score'],
-                    "past_orders": db.get_user_orders(request.user_id),
-                    "user_id": request.user_id
-                }
+        user_context = self._build_user_context(request.user_id, session_id)
         
         # Get chat history
         chat_history = []
@@ -75,7 +68,11 @@ class Orchestrator:
         if session_id:
             db.add_chat_message(session_id, "assistant", response_text, "sales")
 
-        requires_action, action_type, action_data = self._extract_action(response_text, user_context)
+        requires_action, action_type, action_data = self._extract_action(
+            request.message,
+            response_text,
+            user_context,
+        )
 
         return SalesResponse(
             reply=response_text,
@@ -85,11 +82,11 @@ class Orchestrator:
             action_data=action_data,
         )
 
-    def _build_user_context(self, user_id: int | None, session_id: str | None = None) -> Dict[str, Any]:
+    def _build_user_context(self, user_id: str | None, session_id: str | None = None) -> Dict[str, Any]:
         if not user_id:
             return {}
 
-        user = db.get_user(user_id)
+        user = db.get_user_flexible(user_id)
         base_context = {
             "user_id": user_id,
             "past_orders": db.get_user_orders(user_id),
@@ -116,6 +113,7 @@ class Orchestrator:
         base_context["style_preferences"] = self._derive_style_preferences(cross_messages)
 
         return base_context
+
     def _detect_intents(self, message: str) -> List[str]:
         message_lower = message.lower()
         intents: List[str] = []
@@ -178,12 +176,65 @@ class Orchestrator:
         except Exception as error:
             return f"{agent_type} agent error: {str(error)}"
 
-    def _extract_action(self, response: str, user_context: Dict[str, Any]) -> tuple:
+    def _extract_action(self, user_message: str, response: str, user_context: Dict[str, Any]) -> tuple:
         response_lower = response.lower()
+        user_message_lower = user_message.lower()
 
-        if "add to cart" in response_lower:
+        add_to_cart_triggers = [
+            "add to cart",
+            "add it to cart",
+            "put it in my cart",
+            "put this in my cart",
+            "add this to my bag",
+            "add to bag",
+        ]
+        checkout_triggers = [
+            "checkout",
+            "check out",
+            "buy now",
+            "purchase now",
+            "complete purchase",
+            "complete the purchase",
+            "place order",
+            "proceed to payment",
+            "pay now",
+        ]
+        checkout_cta_phrases = [
+            "go to checkout",
+            "proceed to checkout",
+            "head to checkout",
+            "ready to checkout",
+            "complete your purchase",
+            "continue to checkout",
+        ]
+
+        if any(trigger in user_message_lower for trigger in add_to_cart_triggers):
             return True, "add_to_cart", {"product_id": 1, "quantity": 1}
-        if "checkout" in response_lower or "complete purchase" in response_lower:
-            return True, "checkout", {"user_id": user_context.get("user_id")}
+
+        if any(trigger in user_message_lower for trigger in checkout_triggers):
+            if any(phrase in response_lower for phrase in checkout_cta_phrases):
+                return True, "checkout", {"user_id": user_context.get("user_id")}
 
         return False, None, None
+
+    def _derive_style_preferences(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Extract lightweight recurring style signals from recent chat history."""
+        colors = ["black", "white", "blue", "navy", "red", "green", "pink", "beige", "burgundy"]
+        occasions = ["wedding", "party", "casual", "formal", "office", "vacation", "business"]
+
+        detected_colors: list[str] = []
+        detected_occasions: list[str] = []
+
+        for message in messages:
+            content = (message.get("content") or "").lower()
+            for color in colors:
+                if color in content and color not in detected_colors:
+                    detected_colors.append(color)
+            for occasion in occasions:
+                if occasion in content and occasion not in detected_occasions:
+                    detected_occasions.append(occasion)
+
+        return {
+            "colors": detected_colors[:3],
+            "occasions": detected_occasions[:2],
+        }

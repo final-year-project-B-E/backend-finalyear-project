@@ -22,8 +22,8 @@ class PaymentAgent:
         total = subtotal + tax + shipping
         
         # Apply loyalty discount if applicable
-        user = db.get_user(user_id)
-        loyalty_discount = min(user['loyalty_score'] * 0.01, 50)  # 1 point = $0.01, max $50
+        user = db.get_user_flexible(user_id) or {}
+        loyalty_discount = min(user.get('loyalty_score', 0) * 0.01, 50)  # 1 point = $0.01, max $50
         final_total = max(0, total - loyalty_discount)
         
         response = f"**Order Summary:**\n\n"
@@ -53,7 +53,7 @@ class PaymentAgent:
         
         return response
     
-    async def execute_payment(self, user_id: int, payment_method: str, amount: float) -> Dict[str, Any]:
+    async def execute_payment(self, user_id: str, payment_method: str, amount: float) -> Dict[str, Any]:
         """Execute payment (simulated)"""
         
         # Simulate payment processing

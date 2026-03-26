@@ -13,12 +13,15 @@ from datetime import datetime
 import json
 from bson import ObjectId
 from typing import Any, Dict, List
+import logging
 
 # Load environment variables from .env file
 load_dotenv()
 
 import uvicorn
 import asyncio
+
+logger = logging.getLogger(__name__)
 
 # ==================== Helper Functions ====================
 
@@ -70,6 +73,7 @@ async def sales_chat(req: SalesRequest):
     try:
         return await orchestrator.process_message(req)
     except Exception as error:
+        logger.exception("Sales endpoint failed")
         raise HTTPException(status_code=500, detail=str(error))
 
 
@@ -284,40 +288,86 @@ async def add_to_cart(user_id: str, product_id: int, quantity: int = 1):
 
 
 @app.post("/user/{user_id}/checkout")
-async def checkout(user_id: int, shipping_address: str, billing_address: str, payment_method: str):
+async def checkout(user_id: str, shipping_address: str, billing_address: str, payment_method: str):
     """Process checkout."""
     from uuid import uuid4
     
-    cart = db.get_cart(user_id)
-    if not cart or not cart.get("items"):
+    cart_items = db.get_user_cart(user_id)
+    if not cart_items:
         raise HTTPException(status_code=400, detail="Cart is empty")
+
+    subtotal = sum(item["product"]["price"] * item["quantity"] for item in cart_items)
+    tax_amount = round(subtotal * 0.08, 2)
+    shipping_amount = 0 if subtotal >= 100 else 9.99
+    discount_amount = 0.0
+    final_amount = round(subtotal + tax_amount + shipping_amount - discount_amount, 2)
     
     # Create order
     order_data = {
         "order_number": f"ORD-{uuid4().hex[:8]}",
         "user_id": user_id,
-        "items": cart.get("items", []),
+        "items": [
+            {
+                "product_id": item["product_id"],
+                "product_name": item["product"]["product_name"],
+                "quantity": item["quantity"],
+                "price": item["product"]["price"],
+            }
+            for item in cart_items
+        ],
+        "total_amount": round(subtotal, 2),
+        "tax_amount": tax_amount,
+        "shipping_amount": shipping_amount,
+        "discount_amount": discount_amount,
+        "final_amount": final_amount,
+        "payment_status": "paid",
         "shipping_address": shipping_address,
         "billing_address": billing_address,
         "payment_method": payment_method,
+        "order_status": "pending",
         "status": "pending",
-        "created_at": datetime.utcnow()
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
     }
     
     order_id = db.create_order(order_data)
-    db.update_cart(user_id, [])  # Clear cart
+    db.clear_user_cart(user_id)
     
-    return {"message": "Order created", "order_id": order_id, "order_number": order_data["order_number"]}
+    return {
+        "message": "Order created",
+        "order_id": order_id,
+        "order_number": order_data["order_number"],
+        "final_amount": final_amount,
+    }
 
 
 @app.get("/products")
-async def get_products(category: str = None):
-    """Get all products or filter by category."""
-    if category:
-        products = db.get_products_by_category(category)
+async def get_products(
+    category: str = None,
+    occasion: str = None,
+    min_price: float = None,
+    max_price: float = None,
+    q: str = None,
+):
+    """Get all products or filter by category, occasion, price, and query."""
+    if category or occasion or min_price is not None or max_price is not None or q:
+        products = db.search_products(
+            category=category,
+            occasion=occasion,
+            min_price=min_price,
+            max_price=max_price,
+            query=q,
+        )
     else:
         products = db.get_all_products()
     return {"products": [serialize_document(p) for p in products]}
+
+
+@app.get("/products/meta")
+async def get_product_metadata():
+    """Get catalog metadata for frontend navigation and filters."""
+    metadata = db.get_catalog_metadata()
+    return serialize_document(metadata)
 
 
 @app.get("/products/{product_id}")
@@ -368,6 +418,54 @@ async def get_orders(user_id: str):
     """Get user's orders."""
     orders = db.get_user_orders(user_id)
     return {"user_id": user_id, "orders": [serialize_document(o) for o in orders]}
+
+
+@app.get("/user/{user_id}/wishlist")
+async def get_wishlist(user_id: str):
+    """Get user's wishlist products."""
+    items = db.get_user_wishlist(user_id)
+    return {"user_id": user_id, "items": [serialize_document(item) for item in items]}
+
+
+@app.post("/user/{user_id}/wishlist/{product_id}")
+async def add_to_wishlist(user_id: str, product_id: int):
+    """Add item to wishlist."""
+    product = db.get_product(product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    db.add_to_wishlist(user_id, product_id)
+    return {"message": "Item added to wishlist", "user_id": user_id, "product_id": product_id}
+
+
+@app.delete("/user/{user_id}/wishlist/{product_id}")
+async def remove_from_wishlist(user_id: str, product_id: int):
+    """Remove item from wishlist."""
+    success = db.remove_from_wishlist(user_id, product_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Product not found in wishlist")
+
+    return {"message": "Item removed from wishlist", "user_id": user_id, "product_id": product_id}
+
+
+@app.get("/chat/{session_id}/messages")
+async def get_chat_messages(session_id: str):
+    """Get persisted chat messages for a session."""
+    messages = db.get_chat_history(session_id, limit=100)
+    return {
+        "session_id": session_id,
+        "messages": [serialize_document(message) for message in messages],
+    }
+
+
+@app.get("/user/{user_id}/chat/sessions")
+async def get_user_chat_sessions(user_id: str):
+    """Get a user's recent chat threads."""
+    sessions = db.get_user_chat_sessions(user_id, limit=20)
+    return {
+        "user_id": user_id,
+        "sessions": [serialize_document(session) for session in sessions],
+    }
 
 
 if __name__ == "__main__":

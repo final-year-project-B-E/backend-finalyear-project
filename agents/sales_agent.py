@@ -1,5 +1,6 @@
 import os
 import re
+import logging
 from typing import List, Dict, Any, Optional
 
 import requests
@@ -13,6 +14,7 @@ load_dotenv()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
 MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/sfree")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+logger = logging.getLogger(__name__)
 
 
 class SalesAgent:
@@ -115,7 +117,9 @@ Response quality bar:
         for product in rag_context.get("matched_products", [])[:5]:
             prompt += (
                 f"  * {product['product_name']} | ${product['price']} | occasion={product['occasion']} "
-                f"| category={product['dress_category']} | stock={product['stock']}\n"
+                f"| category={product['dress_category']} | stock={product['stock']} "
+                f"| colors={product.get('colors', '')} | sizes={product.get('available_sizes', '')} "
+                f"| material={product.get('material', '')} | description={product.get('description', '')[:120]}\n"
             )
 
         if tool_outputs:
@@ -126,6 +130,8 @@ Response quality bar:
         prompt += "\nHow to answer:\n"
         prompt += "1) Start with a strong direct answer and recommendations.\n"
         prompt += "2) Use specific products from matched products if available.\n"
+        prompt += "2a) If matched products exist, never say the catalog has no relevant items.\n"
+        prompt += "2b) Respect gender/category intent strictly when products are matched, especially men/women/kids.\n"
         prompt += "3) If something critical is missing, ask at most 1-2 focused questions.\n"
         prompt += "4) End with a clear next step the user can take now.\n"
         return prompt
@@ -166,6 +172,22 @@ Response quality bar:
         preferences = self._extract_preferences(user_message, user_context)
         matched_products = self._retrieve_products(preferences)
         intent = self._infer_intent(user_message)
+
+        logger.info(
+            "SalesAgent RAG | message=%r | preferences=%s | matched=%s",
+            user_message,
+            preferences,
+            [
+                {
+                    "id": product.get("id"),
+                    "name": product.get("product_name"),
+                    "category": product.get("dress_category"),
+                    "occasion": product.get("occasion"),
+                    "price": product.get("price"),
+                }
+                for product in matched_products[:5]
+            ],
+        )
 
         cart_summary = None
         if user_context.get("user_id"):
@@ -220,25 +242,75 @@ Response quality bar:
         if found_colors:
             preferences["colors"] = found_colors
 
+        category_keywords = {
+            "men": ["men", "men's", "mens", "male", "gentlemen"],
+            "women": ["women", "women's", "womens", "female", "ladies"],
+            "kids": ["kids", "kid", "children", "boys", "girls", "baby"],
+        }
+        for category_prefix, keywords in category_keywords.items():
+            if any(keyword in text for keyword in keywords):
+                preferences["category_prefix"] = category_prefix
+                break
+
+        category_terms = {
+            "suit": ["suit", "suits", "blazer", "blazers", "tuxedo"],
+            "shirt": ["shirt", "shirts"],
+            "dress": ["dress", "dresses", "gown", "gowns"],
+            "top": ["top", "tops", "blouse", "blouses"],
+            "outerwear": ["jacket", "jackets", "coat", "coats", "outerwear"],
+            "traditional": ["kurta", "saree", "lehenga", "ethnic", "traditional"],
+        }
+        matched_terms = [
+            category_name
+            for category_name, keywords in category_terms.items()
+            if any(keyword in text for keyword in keywords)
+        ]
+        if matched_terms:
+            preferences["category_terms"] = matched_terms
+
+        tokens = re.findall(r"[a-zA-Z]+", text)
+        stop_words = {
+            "show", "me", "for", "with", "the", "and", "wear", "something", "need",
+            "want", "looking", "look", "outfit", "formal", "casual", "party", "wedding",
+            "mens", "men", "womens", "women",
+        }
+        search_terms = [
+            token for token in tokens
+            if len(token) > 2 and token not in stop_words
+        ]
+        if search_terms:
+            preferences["search_terms"] = search_terms[:6]
+
         if user_context.get("style_preferences") and "colors" not in preferences:
             preferences["colors"] = user_context["style_preferences"].get("colors", [])
 
         return preferences
 
     def _retrieve_products(self, preferences: Dict[str, Any]) -> List[Dict[str, Any]]:
-        products = db.products[:]
+        products = db.get_all_products()
 
         occasion = preferences.get("occasion")
         min_price = preferences.get("min_price")
         max_price = preferences.get("max_price")
         colors = preferences.get("colors", [])
+        category_prefix = preferences.get("category_prefix")
+        category_terms = preferences.get("category_terms", [])
+        search_terms = preferences.get("search_terms", [])
 
         scored: List[tuple[int, Dict[str, Any]]] = []
         for product in products:
             score = 0
+            product_name = str(product.get("product_name", "")).lower()
+            product_category = str(product.get("dress_category", "")).lower()
+            product_description = str(product.get("description", "")).lower()
 
-            if occasion and product.get("occasion", "").lower() == occasion.lower():
+            if occasion and str(product.get("occasion", "")).lower() == occasion.lower():
                 score += 4
+            if category_prefix and product_category.startswith(f"{category_prefix}-"):
+                score += 6
+            if category_terms:
+                if any(term in product_category or term in product_name for term in category_terms):
+                    score += 4
             if min_price is not None and product.get("price", 0) >= min_price:
                 score += 1
             if max_price is not None and product.get("price", 0) <= max_price:
@@ -247,11 +319,17 @@ Response quality bar:
                 product_colors = product.get("colors", "").lower()
                 if any(color in product_colors for color in colors):
                     score += 2
+            if search_terms:
+                for term in search_terms:
+                    if term in product_name:
+                        score += 3
+                    elif term in product_category or term in product_description:
+                        score += 1
 
             score += 1 if product.get("stock", 0) > 0 else -2
             score += 1 if product.get("featured_dress") else 0
 
-            if occasion or min_price is not None or max_price is not None or colors:
+            if occasion or min_price is not None or max_price is not None or colors or category_prefix or category_terms or search_terms:
                 if score > 0:
                     scored.append((score, product))
             else:
@@ -297,6 +375,13 @@ Response quality bar:
             return (
                 f"Excellent choice, {name}. {preference_line}{chr(10).join(lines)}\n\n"
                 "If you like one of these, tell me the product name and quantity and I'll help you add it to cart and move to checkout."
+            )
+
+        if preferences.get("category_prefix") == "men" and preferences.get("occasion", "").lower() == "formal":
+            return (
+                f"I could not confidently rank the men's formal catalog for you just yet, {name}, "
+                "but I should be looking at items like men's shirts and blazers. "
+                "Tell me your budget or whether you want a shirt, blazer, or full outfit, and I'll narrow it down."
             )
 
         return (

@@ -50,19 +50,26 @@ class RecommendationAgent:
         message_lower = message.lower()
         intent = {}
         
-        # Check for categories
-        categories = ["evening", "summer", "office", "casual", "formal", "wedding", "party"]
-        for category in categories:
-            if category in message_lower:
-                intent["category"] = category.capitalize()
-                break
+        if any(keyword in message_lower for keyword in ["men", "men's", "mens", "male", "gentlemen"]):
+            intent["category"] = "men"
+        elif any(keyword in message_lower for keyword in ["women", "women's", "womens", "ladies", "female"]):
+            intent["category"] = "women"
+        elif any(keyword in message_lower for keyword in ["kids", "kid", "boys", "girls", "baby"]):
+            intent["category"] = "kids"
         
         # Check for occasions
         occasions = ["wedding", "party", "business", "date", "formal", "casual", "vacation"]
         for occasion in occasions:
             if occasion in message_lower:
-                intent["occasion"] = occasion.capitalize()
+                intent["occasion"] = occasion
                 break
+
+        if "suit" in message_lower:
+            intent["category"] = "men-suits" if intent.get("category") == "men" else intent.get("category", "men-suits")
+        elif "shirt" in message_lower:
+            intent["category"] = "men-shirts" if intent.get("category") == "men" else intent.get("category", "men-shirts")
+        elif "dress" in message_lower and intent.get("category") == "women":
+            intent["category"] = "women-dresses"
         
         # Check for price mentions
         if "under" in message_lower or "less than" in message_lower:
