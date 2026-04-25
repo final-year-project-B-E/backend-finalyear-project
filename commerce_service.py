@@ -113,7 +113,11 @@ def parse_dt(value: Any) -> datetime:
 
 class CommerceSimulationService:
     def __init__(self):
-        self.mongo = db.db
+        self._database = db
+
+    @property
+    def mongo(self):
+        return self._database.db
 
     def _new_id(self, prefix: str) -> str:
         return f"{prefix}_{uuid.uuid4().hex[:12]}"
