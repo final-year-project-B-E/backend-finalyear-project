@@ -1,7 +1,11 @@
 import os
+from dotenv import load_dotenv
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from pymongo import MongoClient
+
+# Load environment variables from .env file
+load_dotenv()
 from pymongo.errors import ConnectionFailure
 from passlib.context import CryptContext
 import logging
