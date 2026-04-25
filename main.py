@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import asyncio
@@ -72,6 +73,28 @@ def user_to_response(user: Dict[str, Any]) -> UserResponse:
     )
 
 
+def get_cors_configuration() -> tuple[List[str], bool]:
+    default_origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+    ]
+    configured = os.getenv("CORS_ALLOW_ORIGINS", "")
+    origins = [origin.strip() for origin in configured.split(",") if origin.strip()] or default_origins
+    allow_credentials = os.getenv("CORS_ALLOW_CREDENTIALS", "true").lower() == "true"
+
+    if "*" in origins and allow_credentials:
+        logger.warning(
+            "Ignoring wildcard CORS origin because credentialed requests require explicit origins."
+        )
+        origins = [origin for origin in origins if origin != "*"] or default_origins
+
+    return origins, allow_credentials
+
+
 async def simulation_loop() -> None:
     while True:
         try:
@@ -83,7 +106,10 @@ async def simulation_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    commerce_service.process_due_simulations()
+    try:
+        commerce_service.process_due_simulations()
+    except Exception:
+        logger.exception("Skipping startup simulation warmup because the database is unavailable")
     task = asyncio.create_task(simulation_loop())
     try:
         yield
@@ -98,10 +124,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+cors_origins, cors_allow_credentials = get_cors_configuration()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=cors_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

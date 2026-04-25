@@ -1,4 +1,4 @@
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 from typing import List, Dict, Any, Optional, Literal
 from datetime import datetime
 from enum import Enum
@@ -28,7 +28,7 @@ class SalesRequest(BaseModel):
     user_id: Optional[str] = None
     session_id: Optional[str] = None
     channel: Channel = Channel.WEB
-    history: Optional[List[Message]] = []
+    history: Optional[List[Message]] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod
@@ -111,7 +111,7 @@ class OrderTimelineEntry(BaseModel):
     label: str
     description: str
     source: str
-    metadata: Dict[str, Any] = {}
+    metadata: Dict[str, Any] = Field(default_factory=dict)
     created_at: str
 
 class WhatsAppConnection(BaseModel):
@@ -136,7 +136,7 @@ class CheckoutRequest(BaseModel):
     billing_address: str
     payment_method: str
     payment_scenario: Literal["success", "pending", "failed"] = "success"
-    items: List[CheckoutItemRequest] = []
+    items: List[CheckoutItemRequest] = Field(default_factory=list)
 
 class OrderAdvanceRequest(BaseModel):
     target_status: OrderStatus
@@ -149,7 +149,7 @@ class ActivityRequest(BaseModel):
     activity_type: str
     product_id: Optional[int] = None
     order_number: Optional[str] = None
-    metadata: Dict[str, Any] = {}
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
 class WhatsAppConnectionRequest(BaseModel):
     phone_number: Optional[str] = None
@@ -182,7 +182,7 @@ class Order(BaseModel):
     status: str
     items: List[Dict[str, Any]]
     payment_status: Optional[str] = None
-    timeline: List[OrderTimelineEntry] = []
+    timeline: List[OrderTimelineEntry] = Field(default_factory=list)
 
 class AgentTask(BaseModel):
     task_id: str
