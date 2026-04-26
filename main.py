@@ -20,6 +20,7 @@ from schemas import (
     ActivityRequest,
     CheckoutRequest,
     LoginResponse,
+    LoyaltyPointsRequest,
     OrderAdvanceRequest,
     PaymentRetryRequest,
     SalesRequest,
@@ -447,6 +448,63 @@ async def retry_payment(order_number: str, payment_id: str, payload: PaymentRetr
     if not order:
         raise HTTPException(status_code=404, detail="Order or payment not found")
     return serialize_document(order)
+
+
+@app.post("/orders/{order_number}/apply-loyalty-points")
+async def apply_loyalty_points(order_number: str, payload: LoyaltyPointsRequest):
+    success, message, updated_order = commerce_service.apply_loyalty_points(
+        order_number, payload.points_to_redeem
+    )
+    if not success:
+        raise HTTPException(status_code=400, detail=message)
+    return {
+        "success": True,
+        "message": message,
+        "order": serialize_document(updated_order),
+    }
+
+
+@app.get("/user/{user_id}/loyalty")
+async def get_loyalty_info(user_id: str):
+    user = db.get_user_flexible(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    loyalty_score = user.get("loyalty_score", 0)
+    
+    # Determine tier
+    if loyalty_score >= 500:
+        tier = "Platinum"
+    elif loyalty_score >= 200:
+        tier = "Gold"
+    elif loyalty_score >= 100:
+        tier = "Silver"
+    else:
+        tier = "Bronze"
+    
+    # Calculate next tier
+    if loyalty_score < 100:
+        points_to_next_tier = 100 - loyalty_score
+        next_tier = "Silver"
+    elif loyalty_score < 200:
+        points_to_next_tier = 200 - loyalty_score
+        next_tier = "Gold"
+    elif loyalty_score < 500:
+        points_to_next_tier = 500 - loyalty_score
+        next_tier = "Platinum"
+    else:
+        points_to_next_tier = 0
+        next_tier = None
+    
+    return {
+        "user_id": user_id,
+        "loyalty_score": loyalty_score,
+        "tier": tier,
+        "tier_discount": {"Bronze": 5, "Silver": 10, "Gold": 15, "Platinum": 20}.get(tier, 0),
+        "points_value": round(loyalty_score * 0.01, 2),
+        "next_tier": next_tier,
+        "points_to_next_tier": points_to_next_tier,
+    }
 
 
 @app.get("/user/{user_id}/orders")
