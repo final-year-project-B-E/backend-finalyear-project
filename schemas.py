@@ -145,6 +145,9 @@ class OrderAdvanceRequest(BaseModel):
 class PaymentRetryRequest(BaseModel):
     scenario: Literal["success", "pending", "failed"] = "success"
 
+class LoyaltyPointsRequest(BaseModel):
+    points_to_redeem: int = Field(..., gt=0, description="Number of points to redeem")
+
 class ActivityRequest(BaseModel):
     activity_type: str
     product_id: Optional[int] = None

@@ -1,0 +1,63 @@
+
+[1m[94m======================================================================[0m
+[1m[94mCOMPREHENSIVE BLACK-BOX TESTING SUITE[0m
+[1m[94m======================================================================[0m
+Start Time: 2026-04-26 12:20:39
+API Endpoint: http://localhost:8000
+
+[93mSetting up test user...[0m
+[92m✓ Test user ready[0m
+[91m✗ Failed to fetch products: 0[0m
+
+[1m[94mSALES AGENT TESTS[0m
+[91m✗ FAIL[0m | [1mSales Agent[0m                 | Greeting & Initial Response              HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mSales Agent[0m                 | Product Recommendation                   HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mSales Agent[0m                 | Follow-up Question Handling              HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mSales Agent[0m                 | Multi-Preference Extraction              HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+
+[1m[94mRECOMMENDATION AGENT TESTS[0m
+[91m✗ FAIL[0m | [1mRecommendation Agent[0m                 | Category Filtering                       HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=5)
+[91m✗ FAIL[0m | [1mRecommendation Agent[0m                 | Occasion Filtering                       HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=5)
+[91m✗ FAIL[0m | [1mRecommendation Agent[0m                 | Top 3 Products Limit                     HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=5)
+
+[1m[94mINVENTORY AGENT TESTS[0m
+[91m✗ FAIL[0m | [1mInventory Agent[0m                 | Stock Availability Check                 No product ID
+[91m✗ FAIL[0m | [1mInventory Agent[0m                 | Size Options                             No product ID
+[91m✗ Failed to fetch products: HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=5)[0m
+[91m✗ FAIL[0m | [1mInventory Agent[0m                 | Multiple Products Check                  Insufficient products
+
+[1m[94mPAYMENT AGENT TESTS[0m
+[91m✗ FAIL[0m | [1mPayment Agent[0m                 | Payment Methods List                     HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=5)
+[91m✗ FAIL[0m | [1mPayment Agent[0m                 | Order Summary Generation                 HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mPayment Agent[0m                 | Loyalty Discount Calculation             No order
+
+[1m[94mFULFILLMENT AGENT TESTS[0m
+[91m✗ FAIL[0m | [1mFulfillment Agent[0m                 | Delivery Options                         HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=5)
+[91m✗ FAIL[0m | [1mFulfillment Agent[0m                 | Shipping Cost Calculation                HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mFulfillment Agent[0m                 | Order Status Tracking                    No order
+
+[1m[94mLOYALTY AGENT TESTS[0m
+[91m✗ FAIL[0m | [1mLoyalty Agent[0m                 | Tier Information Display                 HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=5)
+[91m✗ FAIL[0m | [1mLoyalty Agent[0m                 | Points Balance Display                   HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=5)
+[91m✗ FAIL[0m | [1mLoyalty Agent[0m                 | Coupon Management                        HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mLoyalty Agent[0m                 | Tier Progression Tracking                HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=5)
+
+[1m[94mSUPPORT AGENT TESTS[0m
+[91m✗ FAIL[0m | [1mSupport Agent[0m                 | Return Policy Info                       HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mSupport Agent[0m                 | Issue Resolution                         HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mSupport Agent[0m                 | Order Status Issue                       HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+
+[1m[94mINTENT ROUTING TESTS[0m
+[91m✗ FAIL[0m | [1mIntent Routing[0m                 | Recommendation Intent                    HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mIntent Routing[0m                 | Inventory Intent                         HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mIntent Routing[0m                 | Payment Intent                           HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mIntent Routing[0m                 | Loyalty Intent                           HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mIntent Routing[0m                 | Support Intent                           HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mIntent Routing[0m                 | Fulfillment Intent                       HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+
+[1m[94mEDGE CASE & PERFORMANCE TESTS[0m
+[91m✗ FAIL[0m | [1mEdge Cases[0m                 | Empty Message Handling                   HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mEdge Cases[0m                 | Long Message Handling                    HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mEdge Cases[0m                 | Special Characters                       HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mEdge Cases[0m                 | Invalid User ID                          HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mEdge Cases[0m                 | Concurrent Requests                      Success rate: 0/3

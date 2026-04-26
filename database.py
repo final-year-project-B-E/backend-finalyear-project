@@ -345,6 +345,21 @@ class Database:
         )
         return result.modified_count > 0
 
+    def increment_product_view_count(self, product_id: int) -> bool:
+        """
+        PHASE 1: Track product popularity by incrementing view count
+        Used by RAG system to boost popular products in search results
+        """
+        result = self.db.products.update_one(
+            {"id": product_id},
+            {
+                "$inc": {"view_count": 1},
+                "$set": {"last_viewed_at": utc_iso()}
+            },
+            upsert=False  # Only update if product exists
+        )
+        return result.modified_count > 0
+
     # Cart operations
     def get_cart(self, user_id: str) -> Optional[Dict[str, Any]]:
         return self.db.carts.find_one({"user_id": user_id})

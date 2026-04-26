@@ -501,6 +501,10 @@ class CommerceSimulationService:
             "latest_payment_id": payment_id,
             "order_status": "order_placed",
             "status": "order_placed",
+            "loyalty_points_redeemed": 0,
+            "loyalty_discount_amount": 0,
+            "loyalty_points_awarded": False,
+            "loyalty_points_earned": 0,
             "timeline": [
                 self._build_order_timeline_entry(
                     "order_placed",
@@ -652,6 +656,93 @@ class CommerceSimulationService:
             {"$set": {"scheduled_transitions.$.processed_at": to_iso(utc_now())}},
         )
 
+    def _award_loyalty_points(self, order: Dict[str, Any]) -> None:
+        """Award loyalty points when order is delivered.
+        Points = final_amount * 10 (e.g., $100 order = 1000 points)
+        """
+        user_id = order.get("user_id")
+        if not user_id:
+            return
+        
+        # Check if points already awarded
+        if order.get("loyalty_points_awarded"):
+            return
+        
+        final_amount = order.get("final_amount", 0)
+        points_to_award = int(final_amount * 10)  # $1 = 10 points
+        
+        if points_to_award > 0:
+            db.update_user_loyalty(user_id, points_to_award)
+            self.mongo.orders.update_one(
+                {"order_number": order["order_number"]},
+                {
+                    "$set": {
+                        "loyalty_points_awarded": True,
+                        "loyalty_points_earned": points_to_award,
+                        "updated_at": to_iso(utc_now()),
+                    }
+                },
+            )
+
+    def apply_loyalty_points(
+        self, order_number: str, points_to_redeem: int
+    ) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
+        """Apply loyalty points as discount to an order.
+        Returns: (success, message, updated_order)
+        """
+        order = self.get_order(order_number)
+        if not order:
+            return False, "Order not found", None
+        
+        if order.get("order_status") != "order_placed":
+            return False, "Can only apply points to orders in order_placed status", None
+        
+        user_id = order.get("user_id")
+        user = db.get_user_flexible(user_id)
+        if not user:
+            return False, "User not found", None
+        
+        available_points = user.get("loyalty_score", 0)
+        if points_to_redeem > available_points:
+            return False, f"Insufficient points. You have {available_points} points.", None
+        
+        if points_to_redeem < 100:
+            return False, "Minimum redemption is 100 points", None
+        
+        discount_amount = round(points_to_redeem * 0.01, 2)  # 1 point = $0.01
+        current_discount = order.get("loyalty_discount_amount", 0)
+        max_discount = round(order.get("final_amount", 0) * 0.25, 2)  # Max 25% discount
+        
+        if current_discount + discount_amount > max_discount:
+            return False, f"Discount exceeds maximum allowed ({max_discount})", None
+        
+        # Update order
+        new_discount = current_discount + discount_amount
+        new_final_amount = round(order.get("final_amount", 0) - discount_amount, 2)
+        
+        self.mongo.orders.update_one(
+            {"order_number": order_number},
+            {
+                "$set": {
+                    "loyalty_points_redeemed": (order.get("loyalty_points_redeemed", 0)) + points_to_redeem,
+                    "loyalty_discount_amount": new_discount,
+                    "final_amount": new_final_amount,
+                    "updated_at": to_iso(utc_now()),
+                },
+                "$push": {
+                    "timeline": self._build_order_timeline_entry(
+                        "order_placed",
+                        f"Applied {points_to_redeem} loyalty points (${discount_amount} discount)",
+                        source="loyalty",
+                    )
+                },
+            },
+        )
+        
+        # Don't deduct points yet - will deduct when order is delivered
+        updated_order = self.get_order(order_number)
+        return True, f"Successfully applied {points_to_redeem} points (${discount_amount} discount)", updated_order
+
     def process_due_simulations(self) -> None:
         self._process_due_payment_updates()
         self._process_due_order_transitions()
@@ -708,6 +799,8 @@ class CommerceSimulationService:
                         {"order_number": order["order_number"]},
                         {"$set": {"payment_status": "failed", "updated_at": to_iso(now)}},
                     )
+                if transition["target_status"] == "delivered":
+                    self._award_loyalty_points(order)
                 event_type = ORDER_EVENT_MAP.get(transition["target_status"])
                 if event_type:
                     self._emit_event(
