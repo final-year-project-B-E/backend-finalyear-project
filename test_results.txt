@@ -1,0 +1,18 @@
+
+[1m[94m======================================================================[0m
+[1m[94mCOMPREHENSIVE BLACK-BOX TESTING SUITE[0m
+[1m[94m======================================================================[0m
+Start Time: 2026-04-26 21:04:39
+API Endpoint: http://localhost:8000
+
+[93mSetting up test user...[0m
+[91m✗ Failed to fetch products: 0[0m
+
+[1m[94mSALES AGENT TESTS[0m
+[91m✗ FAIL[0m | [1mSales Agent[0m                 | Greeting & Initial Response              HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mSales Agent[0m                 | Product Recommendation                   HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mSales Agent[0m                 | Follow-up Question Handling              HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+[91m✗ FAIL[0m | [1mSales Agent[0m                 | Multi-Preference Extraction              HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=10)
+
+[1m[94mRECOMMENDATION AGENT TESTS[0m
+[91m✗ FAIL[0m | [1mRecommendation Agent[0m                 | Category Filtering                       HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=5)

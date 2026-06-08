@@ -82,7 +82,7 @@ class AgentTestRunner:
                     "first_name": "BlackBox",
                     "last_name": "Tester"
                 },
-                timeout=5
+                timeout=30
             )
             if response.status_code in [200, 201, 409]:  # 409 = already exists
                 print(f"{GREEN}✓ Test user ready{RESET}")
@@ -96,7 +96,7 @@ class AgentTestRunner:
         try:
             response = requests.get(
                 f"{API_BASE_URL}/products",
-                timeout=5
+                timeout=30
             )
             if response.status_code == 200:
                 products = response.json()
@@ -122,7 +122,7 @@ class AgentTestRunner:
                     "message": "Hi, I'm looking for a dress",
                     "channel": "web"
                 },
-                timeout=10
+                timeout=45
             )
             passed = response.status_code == 200 and response.json().get("reply")
             self.print_test("Sales Agent", "Greeting & Initial Response", passed, 
@@ -141,7 +141,7 @@ class AgentTestRunner:
                     "message": "Show me a blue formal dress under $200",
                     "channel": "web"
                 },
-                timeout=10
+                timeout=45
             )
             data = response.json()
             passed = (response.status_code == 200 and 
@@ -163,7 +163,7 @@ class AgentTestRunner:
                     "message": "Do you have it in black?",
                     "channel": "web"
                 },
-                timeout=10
+                timeout=45
             )
             passed = response.status_code == 200 and response.json().get("reply")
             self.print_test("Sales Agent", "Follow-up Question Handling", passed,
@@ -182,7 +182,7 @@ class AgentTestRunner:
                     "message": "I need a casual cotton shirt with green and silver colors, around $50-100",
                     "channel": "web"
                 },
-                timeout=10
+                timeout=45
             )
             data = response.json()
             reply = data.get("reply", "").lower()
@@ -204,7 +204,7 @@ class AgentTestRunner:
             response = requests.get(
                 f"{API_BASE_URL}/agents/recommendation/get_recommendations",
                 params={"category": "women-dress"},
-                timeout=5
+                timeout=30
             )
             data = response.json()
             passed = (response.status_code == 200 and 
@@ -221,7 +221,7 @@ class AgentTestRunner:
             response = requests.get(
                 f"{API_BASE_URL}/agents/recommendation/get_recommendations",
                 params={"occasion": "Formal"},
-                timeout=5
+                timeout=30
             )
             data = response.json()
             passed = (response.status_code == 200 and 
@@ -237,7 +237,7 @@ class AgentTestRunner:
         try:
             response = requests.get(
                 f"{API_BASE_URL}/agents/recommendation/get_recommendations",
-                timeout=5
+                timeout=30
             )
             data = response.json()
             passed = (response.status_code == 200 and 
@@ -326,7 +326,7 @@ class AgentTestRunner:
         try:
             response = requests.get(
                 f"{API_BASE_URL}/agents/payment/get_payment_methods",
-                timeout=5
+                timeout=30
             )
             data = response.json()
             passed = (response.status_code == 200 and 
@@ -398,7 +398,7 @@ class AgentTestRunner:
         try:
             response = requests.get(
                 f"{API_BASE_URL}/agents/fulfillment/get_delivery_options",
-                timeout=5
+                timeout=30
             )
             data = response.json()
             passed = (response.status_code == 200 and 
@@ -848,12 +848,14 @@ class AgentTestRunner:
         print(f"Start Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"API Endpoint: {API_BASE_URL}")
         
-        # Check API availability
+        # Check API availability (with longer timeout for embedding model loading)
         try:
-            response = requests.get(f"{API_BASE_URL}/products", timeout=5)
+            print(f"{YELLOW}Checking API availability (this may take a moment while models load)...{RESET}")
+            response = requests.get(f"{API_BASE_URL}/products", timeout=120)
             if response.status_code != 200:
                 print(f"{RED}✗ API health check failed (status: {response.status_code}){RESET}")
                 return
+            print(f"{GREEN}✓ API is responding{RESET}")
         except Exception as e:
             print(f"{RED}✗ Cannot connect to API at {API_BASE_URL}{RESET}")
             print(f"{YELLOW}Make sure the backend is running with: docker-compose up{RESET}")

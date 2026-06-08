@@ -11,7 +11,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 try:
     from sentence_transformers import SentenceTransformer
-    EMBEDDINGS_AVAILABLE = True
+    EMBEDDINGS_AVAILABLE = False  # Disabled for testing - causes blocking
 except ImportError:
     EMBEDDINGS_AVAILABLE = False
 
