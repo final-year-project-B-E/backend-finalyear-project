@@ -20,6 +20,7 @@ from schemas import (
     ActivityRequest,
     CheckoutRequest,
     LoginResponse,
+    LoyaltyPointsRequest,
     OrderAdvanceRequest,
     PaymentRetryRequest,
     SalesRequest,
@@ -375,20 +376,26 @@ async def remove_from_cart(user_id: str, product_id: int):
 @app.post("/user/{user_id}/checkout")
 async def checkout(
     user_id: str,
-    checkout_payload: Optional[CheckoutRequest] = Body(None),
     shipping_address: Optional[str] = Query(None),
     billing_address: Optional[str] = Query(None),
     payment_method: Optional[str] = Query(None),
     payment_scenario: Optional[str] = Query(None),
+    checkout_payload: Optional[CheckoutRequest] = Body(None),
 ):
     try:
-        payload = checkout_payload or CheckoutRequest(
-            shipping_address=shipping_address or "",
-            billing_address=billing_address or shipping_address or "",
-            payment_method=payment_method or "card",
-            payment_scenario=payment_scenario or "success",
-            items=[],
-        )
+        # Use query parameters if provided, otherwise use body payload
+        if shipping_address or billing_address or payment_method or payment_scenario:
+            payload = CheckoutRequest(
+                shipping_address=shipping_address or "",
+                billing_address=billing_address or shipping_address or "",
+                payment_method=payment_method or "card",
+                payment_scenario=payment_scenario or "success",
+                items=[],
+            )
+        elif checkout_payload:
+            payload = checkout_payload
+        else:
+            raise ValueError("Must provide shipping_address, billing_address, and payment_method")
         order = commerce_service.create_checkout(
             user_id=user_id,
             shipping_address=payload.shipping_address,
@@ -447,6 +454,63 @@ async def retry_payment(order_number: str, payment_id: str, payload: PaymentRetr
     if not order:
         raise HTTPException(status_code=404, detail="Order or payment not found")
     return serialize_document(order)
+
+
+@app.post("/orders/{order_number}/apply-loyalty-points")
+async def apply_loyalty_points(order_number: str, payload: LoyaltyPointsRequest):
+    success, message, updated_order = commerce_service.apply_loyalty_points(
+        order_number, payload.points_to_redeem
+    )
+    if not success:
+        raise HTTPException(status_code=400, detail=message)
+    return {
+        "success": True,
+        "message": message,
+        "order": serialize_document(updated_order),
+    }
+
+
+@app.get("/user/{user_id}/loyalty")
+async def get_loyalty_info(user_id: str):
+    user = db.get_user_flexible(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    loyalty_score = user.get("loyalty_score", 0)
+    
+    # Determine tier
+    if loyalty_score >= 500:
+        tier = "Platinum"
+    elif loyalty_score >= 200:
+        tier = "Gold"
+    elif loyalty_score >= 100:
+        tier = "Silver"
+    else:
+        tier = "Bronze"
+    
+    # Calculate next tier
+    if loyalty_score < 100:
+        points_to_next_tier = 100 - loyalty_score
+        next_tier = "Silver"
+    elif loyalty_score < 200:
+        points_to_next_tier = 200 - loyalty_score
+        next_tier = "Gold"
+    elif loyalty_score < 500:
+        points_to_next_tier = 500 - loyalty_score
+        next_tier = "Platinum"
+    else:
+        points_to_next_tier = 0
+        next_tier = None
+    
+    return {
+        "user_id": user_id,
+        "loyalty_score": loyalty_score,
+        "tier": tier,
+        "tier_discount": {"Bronze": 5, "Silver": 10, "Gold": 15, "Platinum": 20}.get(tier, 0),
+        "points_value": round(loyalty_score * 0.01, 2),
+        "next_tier": next_tier,
+        "points_to_next_tier": points_to_next_tier,
+    }
 
 
 @app.get("/user/{user_id}/orders")
@@ -528,6 +592,93 @@ async def get_admin_simulation_orders():
     return {
         "orders": [serialize_document(order) for order in commerce_service.list_admin_orders()],
     }
+
+
+# ============================================================================
+# AGENT-SPECIFIC ENDPOINTS
+# ============================================================================
+
+@app.get("/agents/recommendation/get_recommendations")
+async def get_recommendations(
+    category: Optional[str] = None,
+    occasion: Optional[str] = None,
+    limit: int = 3
+):
+    """Get product recommendations from Recommendation Agent"""
+    products = db.get_all_products()
+    
+    if category:
+        products = [p for p in products if p.get("dress_category", "").lower() == category.lower()]
+    
+    if occasion:
+        products = [p for p in products if p.get("occasion", "").lower() == occasion.lower()]
+    
+    # Sort by view count (popularity) and return top N
+    products.sort(key=lambda x: x.get("view_count", 0), reverse=True)
+    return [serialize_document(p) for p in products[:limit]]
+
+
+@app.get("/agents/inventory/check_inventory")
+async def check_inventory(product_id: int):
+    """Check stock availability from Inventory Agent"""
+    product = db.get_product(product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    return {
+        "product_id": product_id,
+        "product_name": product.get("product_name"),
+        "stock": product.get("stock", 0),
+        "available_sizes": product.get("available_sizes", []),
+        "in_stock": product.get("stock", 0) > 0
+    }
+
+
+@app.get("/agents/payment/get_payment_methods")
+async def get_payment_methods():
+    """Get available payment methods from Payment Agent"""
+    return [
+        {"id": "credit_card", "name": "Credit Card", "enabled": True},
+        {"id": "debit_card", "name": "Debit Card", "enabled": True},
+        {"id": "upi", "name": "UPI", "enabled": True},
+        {"id": "net_banking", "name": "Net Banking", "enabled": True},
+        {"id": "wallet", "name": "Digital Wallet", "enabled": True},
+        {"id": "cod", "name": "Cash on Delivery", "enabled": True}
+    ]
+
+
+@app.get("/agents/payment/get_order_summary")
+async def get_order_summary(order_number: str):
+    """Generate order summary from Payment Agent"""
+    order = commerce_service.get_order(order_number)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    items = order.get("items", [])
+    subtotal = sum(item.get("price", 0) * item.get("quantity", 1) for item in items)
+    tax = round(subtotal * 0.18, 2)  # 18% GST
+    shipping = 0 if subtotal > 500 else 50
+    total = round(subtotal + tax + shipping, 2)
+    
+    return {
+        "order_number": order_number,
+        "subtotal": round(subtotal, 2),
+        "tax": tax,
+        "shipping": shipping,
+        "loyalty_discount": order.get("loyalty_discount_amount", 0),
+        "total": total
+    }
+
+
+@app.get("/agents/fulfillment/get_delivery_options")
+async def get_delivery_options():
+    """Get delivery options from Fulfillment Agent"""
+    return [
+        {"id": "standard", "name": "Standard Delivery", "days": "5-7 days", "cost": 50},
+        {"id": "express", "name": "Express Delivery", "days": "2-3 days", "cost": 150},
+        {"id": "overnight", "name": "Overnight Delivery", "days": "Next day", "cost": 300},
+        {"id": "pickup", "name": "Store Pickup", "days": "2-3 days", "cost": 0}
+    ]
 
 
 if __name__ == "__main__":
